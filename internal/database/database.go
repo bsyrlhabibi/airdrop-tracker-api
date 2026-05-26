@@ -25,6 +25,7 @@ func Migrate() {
 		&model.User{},
 		&model.Account{},
 		&model.Airdrop{},
+		&model.AirdropTask{},
 		&model.AccountAirdrop{},
 		&model.Task{},
 		&model.Wallet{},

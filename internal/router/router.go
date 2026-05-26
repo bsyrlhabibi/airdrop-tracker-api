@@ -81,6 +81,17 @@ func Setup(cfg *config.Config) *gin.Engine {
 	auth.PUT("/airdrops/:id", airdropH.Update)
 	auth.DELETE("/airdrops/:id", airdropH.Delete)
 
+	// Airdrop Tasks (checklist per airdrop)
+	airdropTaskRepo := repository.NewAirdropTaskRepo(db)
+	airdropTaskH := handler.NewAirdropTaskHandler(airdropTaskRepo, airdropRepo)
+	auth.GET("/airdrops/:airdrop_id/tasks", airdropTaskH.List)
+	auth.POST("/airdrops/:airdrop_id/tasks", airdropTaskH.Create)
+	auth.POST("/airdrops/:airdrop_id/tasks/bulk", airdropTaskH.BulkCreate)
+	auth.PUT("/airdrops/:airdrop_id/tasks/reorder", airdropTaskH.Reorder)
+	auth.PUT("/airdrops/:airdrop_id/tasks/reset", airdropTaskH.ResetAll)
+	auth.PUT("/airdrop-tasks/:id/complete", airdropTaskH.Complete)
+	auth.DELETE("/airdrop-tasks/:id", airdropTaskH.Delete)
+
 	// AccountAirdrops (direct operations)
 	auth.GET("/account-airdrops/:id", aaH.Get)
 	auth.PUT("/account-airdrops/:id", aaH.Update)
