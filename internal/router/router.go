@@ -42,7 +42,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// Handlers
 	authH := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
-	accountH := handler.NewAccountHandler(accountRepo, airdropRepo, aaRepo)
+	accountH := handler.NewAccountHandler(accountRepo, airdropRepo, aaRepo, db)
 	airdropH := handler.NewAirdropHandler(airdropRepo)
 	aaH := handler.NewAccountAirdropHandler(aaRepo)
 	taskH := handler.NewTaskHandler(taskRepo, aaRepo)

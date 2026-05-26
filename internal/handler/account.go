@@ -7,16 +7,18 @@ import (
 	"github.com/bsyrlhabibi/airdrop/internal/model"
 	"github.com/bsyrlhabibi/airdrop/internal/repository"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type AccountHandler struct {
 	Repo       *repository.AccountRepo
 	AirdropRepo *repository.AirdropRepo
 	AARepo     *repository.AccountAirdropRepo
+	DB         *gorm.DB
 }
 
-func NewAccountHandler(repo *repository.AccountRepo, airdropRepo *repository.AirdropRepo, aaRepo *repository.AccountAirdropRepo) *AccountHandler {
-	return &AccountHandler{Repo: repo, AirdropRepo: airdropRepo, AARepo: aaRepo}
+func NewAccountHandler(repo *repository.AccountRepo, airdropRepo *repository.AirdropRepo, aaRepo *repository.AccountAirdropRepo, db *gorm.DB) *AccountHandler {
+	return &AccountHandler{Repo: repo, AirdropRepo: airdropRepo, AARepo: aaRepo, DB: db}
 }
 
 type CreateAccountRequest struct {
@@ -32,10 +34,8 @@ type UpdateAccountRequest struct {
 }
 
 type AssignAirdropRequest struct {
-	AirdropID   uint                   `json:"airdrop_id" example:"1"`
-	Template    string                 `json:"template" example:"basic"` // basic, full, custom
-	CustomTasks []CustomTaskRequest    `json:"custom_tasks,omitempty"`
-	Notes       string                 `json:"notes" example:"Focus on bridging"`
+	AirdropID uint   `json:"airdrop_id" binding:"required" example:"1"`
+	Notes     string `json:"notes" example:"Focus on bridging"`
 }
 
 type CustomTaskRequest struct {
@@ -244,8 +244,17 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 		return
 	}
 
-	// Build tasks from template
-	tasks := buildTasksFromTemplate(req.Template, req.CustomTasks)
+	// Auto-sync tasks from global airdrop tasks
+	var globalTasks []model.AirdropTask
+	h.DB.Where("airdrop_id = ?", req.AirdropID).Order("sort_order ASC, created_at ASC").Find(&globalTasks)
+
+	var tasks []model.Task
+	for _, gt := range globalTasks {
+		tasks = append(tasks, model.Task{
+			Description: gt.Description,
+			Frequency:   gt.Frequency,
+		})
+	}
 
 	aa, err := h.AARepo.AssignAirdrop(uint(accountID), req.AirdropID, "active", req.Notes, tasks)
 	if err != nil {
