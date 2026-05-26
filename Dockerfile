@@ -1,14 +1,40 @@
-ARG GO_VERSION=1
-FROM golang:${GO_VERSION}-bookworm as builder
+# Build stage
+FROM golang:1.22-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
+
+# Install dependencies (for SQLite CGO)
+RUN apk add --no-cache gcc musl-dev
+
+# Copy go.mod and go.sum
 COPY go.mod go.sum ./
-RUN go mod download && go mod verify
+RUN go mod download
+
+# Copy source code
 COPY . .
-RUN go build -v -o /run-app .
 
+# Build binary with CGO enabled for SQLite
+RUN CGO_ENABLED=1 GOOS=linux go build -o server cmd/server/main.go
 
-FROM debian:bookworm
+# Runtime stage
+FROM alpine:latest
 
-COPY --from=builder /run-app /usr/local/bin/
-CMD ["run-app"]
+WORKDIR /app
+
+# Install ca-certificates for HTTPS
+RUN apk add --no-cache ca-certificates tzdata
+
+# Copy binary from builder
+COPY --from=builder /app/server .
+
+# Copy swagger docs
+COPY --from=builder /app/docs ./docs
+
+# Create data directory for SQLite
+RUN mkdir -p /app/data
+
+# Expose port
+EXPOSE 8080
+
+# Run
+CMD ["./server"]
