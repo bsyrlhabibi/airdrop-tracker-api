@@ -1,4 +1,4 @@
-.PHONY: run build dev clean swag test
+.PHONY: run build dev clean swag test deploy
 
 run:
 	@echo "Starting server..."
@@ -21,3 +21,7 @@ swag:
 
 test:
 	go test ./... -v
+
+deploy:
+	@echo "Deploying to Fly.io..."
+	flyctl deploy

@@ -1,6 +1,6 @@
 # GUIDE.md — Cara Menjalankan Airdrop Tracker API
 
-Panduan lengkap untuk menjalankan project ini di komputer kamu, dari nol sampai bisa pakai Swagger.
+Panduan lengkap untuk menjalankan project ini — lokal dan deploy ke Fly.io.
 
 ---
 
@@ -11,10 +11,11 @@ Panduan lengkap untuk menjalankan project ini di komputer kamu, dari nol sampai 
 3. [Clone Project](#3-clone-project)
 4. [Setup Environment](#4-setup-environment)
 5. [Install Dependencies](#5-install-dependencies)
-6. [Jalankan Server](#6-jalankan-server)
+6. [Jalankan Server (Lokal)](#6-jalankan-server-lokal)
 7. [Buka Swagger UI](#7-buka-swagger-ui)
 8. [Test API Manual](#8-test-api-manual)
-9. [Troubleshooting](#9-troubleshooting)
+9. [Deploy ke Fly.io](#9-deploy-ke-flyio)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
@@ -138,7 +139,7 @@ go: found github.com/gin-gonic/gin in github.com/gin-gonic/gin v1.12.0
 
 ---
 
-## 6. Jalankan Server
+## 6. Jalankan Server (Lokal)
 
 ### Cara 1: Pakai Makefile (Recommended)
 
@@ -272,7 +273,113 @@ curl http://localhost:8080/api/dashboard \
 
 ---
 
-## 9. Troubleshooting
+## 9. Deploy ke Fly.io
+
+### Step 1: Install Flyctl
+
+```bash
+# Mac / Linux
+curl -L https://fly.io/install.sh | sh
+
+# Windows (PowerShell)
+iwr https://fly.io/install.ps1 -useb | iex
+```
+
+### Step 2: Login
+
+```bash
+flyctl auth login
+```
+
+Browser terbuka → Login / daftar akun Fly.io
+
+### Step 3: Launch App
+
+```bash
+cd airdrop-tracker-api
+flyctl launch --no-deploy
+```
+
+Jawab pertanyaan:
+```
+? App name → airdrop-tracker-api (atau biarkan random)
+? Select region → Singapore (sin)
+? Would you like to set up a Postgresql database? → No
+? Would you like to deploy now? → No
+```
+
+### Step 4: Create Volume (Persistent Storage)
+
+```bash
+flyctl volume create airdrop_data --size 1 --region sin
+```
+
+> Ini supaya database SQLite tidak hilang kalau VM restart
+
+### Step 5: Set JWT Secret
+
+```bash
+flyctl secrets set JWT_SECRET=ganti-dengan-random-string-kamu
+```
+
+> ⚠️ **WAJIB!** Tanpa ini, auth tidak akan work
+
+### Step 6: Deploy
+
+```bash
+flyctl deploy
+```
+
+Tunggu sampai selesai. Output akhir:
+```
+--> v0 deployed successfully
+```
+
+### Step 7: Cek
+
+```bash
+# Status
+flyctl status
+
+# Logs
+flyctl logs
+
+# Test API
+curl https://airdrop-tracker-api.fly.dev/swagger/index.html
+```
+
+### Step 8: Dapat URL
+
+```
+https://airdrop-tracker-api.fly.dev
+```
+
+Buka di browser → Swagger UI muncul → API ready! 🎉
+
+---
+
+### Update & Redeploy
+
+Kalau ada perubahan code:
+
+```bash
+# Commit & push ke GitHub
+git add .
+git commit -m "update: description"
+git push
+
+# Deploy ke Fly.io
+flyctl deploy
+```
+
+Atau pakai Makefile:
+```bash
+make deploy
+```
+
+---
+
+## 10. Troubleshooting
 
 ### "command not found: go"
 → Go belum ter-install atau belum masuk PATH. Ulangi [Step 2](#2-install-go).
@@ -312,10 +419,20 @@ rm data/airdrop.db
 make run
 ```
 
+### Fly.io: "app not found"
+→ Pastikan sudah jalankan `flyctl launch` dulu
+
+### Fly.io: data hilang setelah restart
+→ Pastikan volume sudah dibuat:
+```bash
+flyctl volume create airdrop_data --size 1 --region sin
+```
+
 ---
 
 ## Perintah Berguna
 
+### Lokal
 ```bash
 go mod tidy                     # Install/update dependencies
 make run                        # Jalankan server
@@ -325,10 +442,20 @@ make swag                       # Regenerate Swagger docs
 make test                       # Jalankan test (jika ada)
 ```
 
+### Fly.io
+```bash
+flyctl status                   # Cek status app
+flyctl logs                     # Lihat logs
+flyctl deploy                   # Deploy update
+flyctl ssh console              # SSH ke VM
+flyctl secrets list             # Lihat env variables
+```
+
 ---
 
 ## Ringkasan Cepat (Copy-Paste)
 
+### Lokal
 ```bash
 git clone https://github.com/bsyrlhabibi/airdrop-tracker-api.git
 cd airdrop-tracker-api
@@ -338,6 +465,16 @@ make run
 ```
 
 Lalu buka browser: `http://localhost:8080/swagger/index.html`
+
+### Deploy
+```bash
+flyctl launch --no-deploy
+flyctl volume create airdrop_data --size 1 --region sin
+flyctl secrets set JWT_SECRET=rahasia-kamu
+flyctl deploy
+```
+
+Lalu buka browser: `https://airdrop-tracker-api.fly.dev/swagger/index.html`
 
 ---
 
