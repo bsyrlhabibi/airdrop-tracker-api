@@ -11,31 +11,31 @@ import (
 
 type TaskHandler struct {
 	Repo *repository.TaskRepo
+	AARepo *repository.AccountAirdropRepo
 }
 
-func NewTaskHandler(repo *repository.TaskRepo) *TaskHandler {
-	return &TaskHandler{Repo: repo}
+func NewTaskHandler(repo *repository.TaskRepo, aaRepo *repository.AccountAirdropRepo) *TaskHandler {
+	return &TaskHandler{Repo: repo, AARepo: aaRepo}
 }
 
 type CreateTaskRequest struct {
-	Description string  `json:"description" example:"Swap ETH to USDC"`
-	Frequency   string  `json:"frequency" example:"weekly"`
-	WalletID    *uint   `json:"wallet_id,omitempty"`
+	Description string `json:"description" example:"Swap ETH to USDC"`
+	Frequency   string `json:"frequency" example:"weekly"`
 }
 
 // List Tasks godoc
-// @Summary      List tasks for airdrop
-// @Description  Get all tasks for a specific airdrop
+// @Summary      List tasks for account-airdrop
+// @Description  Get all tasks for a specific account-airdrop
 // @Tags         Tasks
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      int  true  "Airdrop ID"
+// @Param        id   path      int  true  "Account Airdrop ID"
 // @Success      200  {array}   model.Task
 // @Failure      401  {object}  map[string]string
-// @Router       /api/airdrops/{id}/tasks [get]
+// @Router       /api/account-airdrops/{id}/tasks [get]
 func (h *TaskHandler) List(c *gin.Context) {
-	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	tasks, err := h.Repo.FindByAirdrop(uint(airdropID))
+	accountAirdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	tasks, err := h.Repo.FindByAccountAirdrop(uint(accountAirdropID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -45,27 +45,42 @@ func (h *TaskHandler) List(c *gin.Context) {
 
 // Create Task godoc
 // @Summary      Create task
-// @Description  Add new task to an airdrop
+// @Description  Add new task to an account-airdrop
 // @Tags         Tasks
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      int               true  "Airdrop ID"
+// @Param        id   path      int               true  "Account Airdrop ID"
 // @Param        body body      CreateTaskRequest  true  "Task data"
 // @Success      201  {object}  model.Task
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
-// @Router       /api/airdrops/{id}/tasks [post]
+// @Router       /api/account-airdrops/{id}/tasks [post]
 func (h *TaskHandler) Create(c *gin.Context) {
-	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	var t model.Task
-	if err := c.ShouldBindJSON(&t); err != nil {
+	accountAirdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+
+	var req CreateTaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	t.AirdropID = uint(airdropID)
-	h.Repo.Create(&t)
-	c.JSON(http.StatusCreated, t)
+
+	task := &model.Task{
+		AccountAirdropID: uint(accountAirdropID),
+		Description:      req.Description,
+		Frequency:        req.Frequency,
+	}
+
+	if task.Frequency == "" {
+		task.Frequency = "once"
+	}
+
+	if err := h.Repo.Create(task); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, task)
 }
 
 // Complete Task godoc

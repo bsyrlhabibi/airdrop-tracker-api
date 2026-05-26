@@ -51,23 +51,26 @@ type AccountStats struct {
 func (h *DashboardHandler) Summary(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 
-	// Overall stats
+	// Overall stats - airdrops are global catalog entries for this user
 	var totalAirdrops int64
 	h.DB.Model(&model.Airdrop{}).Where("user_id = ?", userID).Count(&totalAirdrops)
 
 	var activeAirdrops int64
 	h.DB.Model(&model.Airdrop{}).Where("user_id = ? AND status = ?", userID, "active").Count(&activeAirdrops)
 
+	// Tasks through account_airdrops -> accounts
 	var totalTasks int64
 	h.DB.Model(&model.Task{}).
-		Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
-		Where("airdrops.user_id = ?", userID).
+		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+		Joins("JOIN accounts ON accounts.id = account_airdrops.account_id").
+		Where("accounts.user_id = ?", userID).
 		Count(&totalTasks)
 
 	var completedTasks int64
 	h.DB.Model(&model.Task{}).
-		Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
-		Where("airdrops.user_id = ? AND tasks.is_completed = ?", userID, true).
+		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+		Joins("JOIN accounts ON accounts.id = account_airdrops.account_id").
+		Where("accounts.user_id = ? AND tasks.is_completed = ?", userID, true).
 		Count(&completedTasks)
 
 	var totalWallets int64
@@ -83,21 +86,21 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 	var accountStats []AccountStats
 	for _, acc := range accounts {
 		var accAirdrops int64
-		h.DB.Model(&model.Airdrop{}).Where("account_id = ?", acc.ID).Count(&accAirdrops)
+		h.DB.Model(&model.AccountAirdrop{}).Where("account_id = ?", acc.ID).Count(&accAirdrops)
 
 		var accActiveAirdrops int64
-		h.DB.Model(&model.Airdrop{}).Where("account_id = ? AND status = ?", acc.ID, "active").Count(&accActiveAirdrops)
+		h.DB.Model(&model.AccountAirdrop{}).Where("account_id = ? AND status = ?", acc.ID, "active").Count(&accActiveAirdrops)
 
 		var accTotalTasks int64
 		h.DB.Model(&model.Task{}).
-			Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
-			Where("airdrops.account_id = ?", acc.ID).
+			Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+			Where("account_airdrops.account_id = ?", acc.ID).
 			Count(&accTotalTasks)
 
 		var accCompletedTasks int64
 		h.DB.Model(&model.Task{}).
-			Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
-			Where("airdrops.account_id = ? AND tasks.is_completed = ?", acc.ID, true).
+			Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+			Where("account_airdrops.account_id = ? AND tasks.is_completed = ?", acc.ID, true).
 			Count(&accCompletedTasks)
 
 		var accWallets int64

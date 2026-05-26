@@ -36,14 +36,16 @@ func Setup(cfg *config.Config) *gin.Engine {
 	userRepo := repository.NewUserRepo(db)
 	accountRepo := repository.NewAccountRepo(db)
 	airdropRepo := repository.NewAirdropRepo(db)
+	aaRepo := repository.NewAccountAirdropRepo(db)
 	taskRepo := repository.NewTaskRepo(db)
 	walletRepo := repository.NewWalletRepo(db)
 
 	// Handlers
 	authH := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
-	accountH := handler.NewAccountHandler(accountRepo)
+	accountH := handler.NewAccountHandler(accountRepo, airdropRepo, aaRepo)
 	airdropH := handler.NewAirdropHandler(airdropRepo)
-	taskH := handler.NewTaskHandler(taskRepo)
+	aaH := handler.NewAccountAirdropHandler(aaRepo)
+	taskH := handler.NewTaskHandler(taskRepo, aaRepo)
 	walletH := handler.NewWalletHandler(walletRepo)
 	dashboardH := handler.NewDashboardHandler(db)
 
@@ -64,16 +66,28 @@ func Setup(cfg *config.Config) *gin.Engine {
 	auth.PUT("/accounts/:id", accountH.Update)
 	auth.DELETE("/accounts/:id", accountH.Delete)
 
-	// Airdrops
+	// Account → Airdrop assignment
+	auth.POST("/accounts/:id/airdrops", accountH.AssignAirdrop)
+	auth.GET("/accounts/:id/airdrops", accountH.GetAccountAirdrops)
+	auth.DELETE("/accounts/:id/airdrops/:airdrop_id", accountH.RemoveAirdrop)
+
+	// Account clone
+	auth.POST("/accounts/:id/clone", accountH.CloneAccount)
+
+	// Airdrops (global catalog)
 	auth.GET("/airdrops", airdropH.List)
 	auth.POST("/airdrops", airdropH.Create)
 	auth.GET("/airdrops/:id", airdropH.Get)
 	auth.PUT("/airdrops/:id", airdropH.Update)
 	auth.DELETE("/airdrops/:id", airdropH.Delete)
 
-	// Tasks
-	auth.GET("/airdrops/:id/tasks", taskH.List)
-	auth.POST("/airdrops/:id/tasks", taskH.Create)
+	// AccountAirdrops (direct operations)
+	auth.GET("/account-airdrops/:id", aaH.Get)
+	auth.PUT("/account-airdrops/:id", aaH.Update)
+
+	// Tasks (per account-airdrop)
+	auth.GET("/account-airdrops/:id/tasks", taskH.List)
+	auth.POST("/account-airdrops/:id/tasks", taskH.Create)
 	auth.PUT("/tasks/:id/complete", taskH.Complete)
 	auth.PUT("/tasks/:id/reset", taskH.Reset)
 	auth.DELETE("/tasks/:id", taskH.Delete)
@@ -85,6 +99,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// Dashboard
 	auth.GET("/dashboard", dashboardH.Summary)
+	auth.GET("/dashboard/comparison", accountH.GetComparison)
 
 	return r
 }

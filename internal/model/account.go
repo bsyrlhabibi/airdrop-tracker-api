@@ -12,6 +12,6 @@ type Account struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Relations
-	Wallets  []Wallet  `json:"wallets,omitempty" gorm:"foreignKey:AccountID"`
-	Airdrops []Airdrop `json:"airdrops,omitempty" gorm:"foreignKey:AccountID"`
+	Wallets        []Wallet        `json:"wallets,omitempty" gorm:"foreignKey:AccountID"`
+	AccountAirdrops []AccountAirdrop `json:"account_airdrops,omitempty" gorm:"foreignKey:AccountID"`
 }

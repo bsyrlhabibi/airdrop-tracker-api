@@ -21,12 +21,59 @@ definitions:
       total_wallets:
         type: integer
     type: object
+  handler.AssignAirdropRequest:
+    properties:
+      airdrop_id:
+        example: 1
+        type: integer
+      custom_tasks:
+        items:
+          $ref: '#/definitions/handler.CustomTaskRequest'
+        type: array
+      notes:
+        example: Focus on bridging
+        type: string
+      template:
+        description: basic, full, custom
+        example: basic
+        type: string
+    type: object
   handler.AuthResponse:
     properties:
       token:
         type: string
       user:
         $ref: '#/definitions/model.User'
+    type: object
+  handler.CloneAccountRequest:
+    properties:
+      color:
+        example: '#EF4444'
+        type: string
+      name:
+        example: Akun 2
+        type: string
+    type: object
+  handler.ComparisonRow:
+    properties:
+      account_color:
+        type: string
+      account_id:
+        type: integer
+      account_name:
+        type: string
+      completed_airdrops:
+        type: integer
+      completed_tasks:
+        type: integer
+      pending_tasks:
+        type: integer
+      total_airdrops:
+        type: integer
+      total_tasks:
+        type: integer
+      wallet_count:
+        type: integer
     type: object
   handler.CreateAccountRequest:
     properties:
@@ -42,9 +89,6 @@ definitions:
     type: object
   handler.CreateAirdropRequest:
     properties:
-      account_id:
-        example: 1
-        type: integer
       category:
         example: rumored
         type: string
@@ -72,8 +116,6 @@ definitions:
       frequency:
         example: weekly
         type: string
-      wallet_id:
-        type: integer
     type: object
   handler.CreateWalletRequest:
     properties:
@@ -88,6 +130,15 @@ definitions:
         type: string
       label:
         example: Main Wallet
+        type: string
+    type: object
+  handler.CustomTaskRequest:
+    properties:
+      description:
+        example: Bridge 0.1 ETH
+        type: string
+      frequency:
+        example: weekly
         type: string
     type: object
   handler.DashboardSummary:
@@ -132,6 +183,15 @@ definitions:
         example: secret123
         type: string
     type: object
+  handler.UpdateAccountAirdropRequest:
+    properties:
+      notes:
+        example: Focus on bridging
+        type: string
+      status:
+        example: active
+        type: string
+    type: object
   handler.UpdateAccountRequest:
     properties:
       color:
@@ -146,9 +206,9 @@ definitions:
     type: object
   model.Account:
     properties:
-      airdrops:
+      account_airdrops:
         items:
-          $ref: '#/definitions/model.Airdrop'
+          $ref: '#/definitions/model.AccountAirdrop'
         type: array
       color:
         type: string
@@ -170,7 +230,7 @@ definitions:
           $ref: '#/definitions/model.Wallet'
         type: array
     type: object
-  model.Airdrop:
+  model.AccountAirdrop:
     properties:
       account:
         allOf:
@@ -178,6 +238,28 @@ definitions:
         description: Relations
       account_id:
         type: integer
+      airdrop:
+        $ref: '#/definitions/model.Airdrop'
+      airdrop_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      notes:
+        type: string
+      status:
+        description: active, completed, paused
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+      updated_at:
+        type: string
+    type: object
+  model.Airdrop:
+    properties:
       category:
         type: string
       chain:
@@ -196,10 +278,6 @@ definitions:
         type: string
       status:
         type: string
-      tasks:
-        items:
-          $ref: '#/definitions/model.Task'
-        type: array
       updated_at:
         type: string
       url:
@@ -209,7 +287,11 @@ definitions:
     type: object
   model.Task:
     properties:
-      airdrop_id:
+      account_airdrop:
+        allOf:
+        - $ref: '#/definitions/model.AccountAirdrop'
+        description: Relations
+      account_airdrop_id:
         type: integer
       completed_at:
         type: string
@@ -218,6 +300,7 @@ definitions:
       description:
         type: string
       frequency:
+        description: once, daily, weekly, monthly
         type: string
       gas_spent:
         type: number
@@ -229,8 +312,6 @@ definitions:
         type: string
       tx_hash:
         type: string
-      wallet_id:
-        type: integer
     type: object
   model.User:
     properties:
@@ -277,6 +358,154 @@ info:
   title: Airdrop Tracker API
   version: "1.0"
 paths:
+  /api/account-airdrops/{id}:
+    get:
+      description: Get a specific account-airdrop with tasks
+      parameters:
+      - description: Account Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AccountAirdrop'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get account-airdrop detail
+      tags:
+      - AccountAirdrops
+    put:
+      consumes:
+      - application/json
+      description: Update status or notes for an account-airdrop assignment
+      parameters:
+      - description: Account Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateAccountAirdropRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.AccountAirdrop'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update account-airdrop
+      tags:
+      - AccountAirdrops
+  /api/account-airdrops/{id}/tasks:
+    get:
+      description: Get all tasks for a specific account-airdrop
+      parameters:
+      - description: Account Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tasks for account-airdrop
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Add new task to an account-airdrop
+      parameters:
+      - description: Account Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create task
+      tags:
+      - Tasks
   /api/accounts:
     get:
       description: Get all sybil accounts for authenticated user
@@ -381,7 +610,7 @@ paths:
       tags:
       - Accounts
     get:
-      description: Get single account by ID with wallets and airdrops
+      description: Get single account by ID with wallets and account-airdrops
       parameters:
       - description: Account ID
         in: path
@@ -458,14 +687,177 @@ paths:
       summary: Update account
       tags:
       - Accounts
+  /api/accounts/{id}/airdrops:
+    get:
+      description: Get all airdrop assignments for a specific account
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.AccountAirdrop'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List airdrops for account
+      tags:
+      - Accounts
+    post:
+      consumes:
+      - application/json
+      description: Assign a global airdrop to an account with optional task template
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Assignment data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.AssignAirdropRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.AccountAirdrop'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Assign airdrop to account
+      tags:
+      - Accounts
+  /api/accounts/{id}/airdrops/{airdrop_id}:
+    delete:
+      description: Unlink an airdrop from an account and delete associated tasks
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Airdrop ID
+        in: path
+        name: airdrop_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove airdrop from account
+      tags:
+      - Accounts
+  /api/accounts/{id}/clone:
+    post:
+      consumes:
+      - application/json
+      description: Clone an account with its airdrop assignments and tasks (not wallets)
+      parameters:
+      - description: Source Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New account data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CloneAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Account'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Clone account
+      tags:
+      - Accounts
   /api/airdrops:
     get:
-      description: Get all airdrops, optionally filtered by account_id
-      parameters:
-      - description: Filter by Account ID
-        in: query
-        name: account_id
-        type: integer
+      description: Get all global airdrops for the authenticated user
       produces:
       - application/json
       responses:
@@ -489,7 +881,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Add new airdrop to track for an account
+      description: Add new global airdrop to the catalog
       parameters:
       - description: Airdrop data
         in: body
@@ -523,7 +915,7 @@ paths:
       - Airdrops
   /api/airdrops/{id}:
     delete:
-      description: Remove airdrop and its tasks
+      description: Remove airdrop from the global catalog
       parameters:
       - description: Airdrop ID
         in: path
@@ -634,75 +1026,6 @@ paths:
       summary: Update airdrop
       tags:
       - Airdrops
-  /api/airdrops/{id}/tasks:
-    get:
-      description: Get all tasks for a specific airdrop
-      parameters:
-      - description: Airdrop ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/model.Task'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: List tasks for airdrop
-      tags:
-      - Tasks
-    post:
-      consumes:
-      - application/json
-      description: Add new task to an airdrop
-      parameters:
-      - description: Airdrop ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: Task data
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/handler.CreateTaskRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/model.Task'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Unauthorized
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Create task
-      tags:
-      - Tasks
   /api/auth/login:
     post:
       consumes:
@@ -791,6 +1114,29 @@ paths:
       security:
       - BearerAuth: []
       summary: Get dashboard stats
+      tags:
+      - Dashboard
+  /api/dashboard/comparison:
+    get:
+      description: Get per-account progress stats for comparison
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handler.ComparisonRow'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get comparison table
       tags:
       - Dashboard
   /api/tasks/{id}:

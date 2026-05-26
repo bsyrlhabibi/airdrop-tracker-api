@@ -23,6 +23,237 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/account-airdrops/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get a specific account-airdrop with tasks",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AccountAirdrops"
+                ],
+                "summary": "Get account-airdrop detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account Airdrop ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AccountAirdrop"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update status or notes for an account-airdrop assignment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "AccountAirdrops"
+                ],
+                "summary": "Update account-airdrop",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account Airdrop ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.UpdateAccountAirdropRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.AccountAirdrop"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/account-airdrops/{id}/tasks": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all tasks for a specific account-airdrop",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "List tasks for account-airdrop",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account Airdrop ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Task"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add new task to an account-airdrop",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create task",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account Airdrop ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Task data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CreateTaskRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Task"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/accounts": {
             "get": {
                 "security": [
@@ -122,7 +353,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get single account by ID with wallets and airdrops",
+                "description": "Get single account by ID with wallets and account-airdrops",
                 "produces": [
                     "application/json"
                 ],
@@ -306,6 +537,267 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/accounts/{id}/airdrops": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all airdrop assignments for a specific account",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "List airdrops for account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.AccountAirdrop"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Assign a global airdrop to an account with optional task template",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Assign airdrop to account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assignment data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.AssignAirdropRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.AccountAirdrop"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/accounts/{id}/airdrops/{airdrop_id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Unlink an airdrop from an account and delete associated tasks",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Remove airdrop from account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Airdrop ID",
+                        "name": "airdrop_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/accounts/{id}/clone": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Clone an account with its airdrop assignments and tasks (not wallets)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Clone account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Source Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New account data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CloneAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/airdrops": {
             "get": {
                 "security": [
@@ -313,7 +805,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all airdrops, optionally filtered by account_id",
+                "description": "Get all global airdrops for the authenticated user",
                 "produces": [
                     "application/json"
                 ],
@@ -321,14 +813,6 @@ const docTemplate = `{
                     "Airdrops"
                 ],
                 "summary": "List all airdrops",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Filter by Account ID",
-                        "name": "account_id",
-                        "in": "query"
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -356,7 +840,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Add new airdrop to track for an account",
+                "description": "Add new global airdrop to the catalog",
                 "consumes": [
                     "application/json"
                 ],
@@ -534,7 +1018,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Remove airdrop and its tasks",
+                "description": "Remove airdrop from the global catalog",
                 "produces": [
                     "application/json"
                 ],
@@ -572,114 +1056,6 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/airdrops/{id}/tasks": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get all tasks for a specific airdrop",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tasks"
-                ],
-                "summary": "List tasks for airdrop",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Airdrop ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.Task"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Add new task to an airdrop",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Tasks"
-                ],
-                "summary": "Create task",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "Airdrop ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Task data",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/handler.CreateTaskRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/model.Task"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -815,6 +1191,43 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/handler.DashboardSummary"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/dashboard/comparison": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get per-account progress stats for comparison",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get comparison table",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/handler.ComparisonRow"
+                            }
                         }
                     },
                     "401": {
@@ -1165,6 +1578,30 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.AssignAirdropRequest": {
+            "type": "object",
+            "properties": {
+                "airdrop_id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "custom_tasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.CustomTaskRequest"
+                    }
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Focus on bridging"
+                },
+                "template": {
+                    "description": "basic, full, custom",
+                    "type": "string",
+                    "example": "basic"
+                }
+            }
+        },
         "handler.AuthResponse": {
             "type": "object",
             "properties": {
@@ -1173,6 +1610,51 @@ const docTemplate = `{
                 },
                 "user": {
                     "$ref": "#/definitions/model.User"
+                }
+            }
+        },
+        "handler.CloneAccountRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string",
+                    "example": "#EF4444"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Akun 2"
+                }
+            }
+        },
+        "handler.ComparisonRow": {
+            "type": "object",
+            "properties": {
+                "account_color": {
+                    "type": "string"
+                },
+                "account_id": {
+                    "type": "integer"
+                },
+                "account_name": {
+                    "type": "string"
+                },
+                "completed_airdrops": {
+                    "type": "integer"
+                },
+                "completed_tasks": {
+                    "type": "integer"
+                },
+                "pending_tasks": {
+                    "type": "integer"
+                },
+                "total_airdrops": {
+                    "type": "integer"
+                },
+                "total_tasks": {
+                    "type": "integer"
+                },
+                "wallet_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -1196,10 +1678,6 @@ const docTemplate = `{
         "handler.CreateAirdropRequest": {
             "type": "object",
             "properties": {
-                "account_id": {
-                    "type": "integer",
-                    "example": 1
-                },
                 "category": {
                     "type": "string",
                     "example": "rumored"
@@ -1236,9 +1714,6 @@ const docTemplate = `{
                 "frequency": {
                     "type": "string",
                     "example": "weekly"
-                },
-                "wallet_id": {
-                    "type": "integer"
                 }
             }
         },
@@ -1260,6 +1735,19 @@ const docTemplate = `{
                 "label": {
                     "type": "string",
                     "example": "Main Wallet"
+                }
+            }
+        },
+        "handler.CustomTaskRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Bridge 0.1 ETH"
+                },
+                "frequency": {
+                    "type": "string",
+                    "example": "weekly"
                 }
             }
         },
@@ -1325,6 +1813,19 @@ const docTemplate = `{
                 }
             }
         },
+        "handler.UpdateAccountAirdropRequest": {
+            "type": "object",
+            "properties": {
+                "notes": {
+                    "type": "string",
+                    "example": "Focus on bridging"
+                },
+                "status": {
+                    "type": "string",
+                    "example": "active"
+                }
+            }
+        },
         "handler.UpdateAccountRequest": {
             "type": "object",
             "properties": {
@@ -1345,10 +1846,10 @@ const docTemplate = `{
         "model.Account": {
             "type": "object",
             "properties": {
-                "airdrops": {
+                "account_airdrops": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.Airdrop"
+                        "$ref": "#/definitions/model.AccountAirdrop"
                     }
                 },
                 "color": {
@@ -1381,7 +1882,7 @@ const docTemplate = `{
                 }
             }
         },
-        "model.Airdrop": {
+        "model.AccountAirdrop": {
             "type": "object",
             "properties": {
                 "account": {
@@ -1395,6 +1896,39 @@ const docTemplate = `{
                 "account_id": {
                     "type": "integer"
                 },
+                "airdrop": {
+                    "$ref": "#/definitions/model.Airdrop"
+                },
+                "airdrop_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "active, completed, paused",
+                    "type": "string"
+                },
+                "tasks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Task"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.Airdrop": {
+            "type": "object",
+            "properties": {
                 "category": {
                     "type": "string"
                 },
@@ -1422,12 +1956,6 @@ const docTemplate = `{
                 "status": {
                     "type": "string"
                 },
-                "tasks": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/model.Task"
-                    }
-                },
                 "updated_at": {
                     "type": "string"
                 },
@@ -1442,7 +1970,15 @@ const docTemplate = `{
         "model.Task": {
             "type": "object",
             "properties": {
-                "airdrop_id": {
+                "account_airdrop": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.AccountAirdrop"
+                        }
+                    ]
+                },
+                "account_airdrop_id": {
                     "type": "integer"
                 },
                 "completed_at": {
@@ -1455,6 +1991,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "frequency": {
+                    "description": "once, daily, weekly, monthly",
                     "type": "string"
                 },
                 "gas_spent": {
@@ -1471,9 +2008,6 @@ const docTemplate = `{
                 },
                 "tx_hash": {
                     "type": "string"
-                },
-                "wallet_id": {
-                    "type": "integer"
                 }
             }
         },
