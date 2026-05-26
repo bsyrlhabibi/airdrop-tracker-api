@@ -7,7 +7,7 @@ app = 'airdrop-tracker-api'
 primary_region = 'dfw'
 
 [build]
-  builder = "dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = '8080'
