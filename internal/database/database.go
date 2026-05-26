@@ -33,12 +33,45 @@ func Migrate() {
 	}
 	log.Println("Migration done")
 
-	// Drop old account_id column from airdrops (legacy schema fix)
-	// SQLite 3.35+ supports ALTER TABLE DROP COLUMN
-	if DB.Migrator().HasColumn(&model.Airdrop{}, "account_id") {
-		log.Println("Dropping legacy account_id column from airdrops...")
-		DB.Exec("ALTER TABLE airdrops DROP COLUMN account_id")
+	// Fix legacy schema: remove account_id column from airdrops if it exists
+	// SQLite doesn't reliably support DROP COLUMN on all versions
+	// Use table recreation approach which works on ALL SQLite versions
+	fixLegacyAirdropSchema()
+}
+
+func fixLegacyAirdropSchema() {
+	// Check if account_id column exists
+	var count int
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrops') WHERE name = 'account_id'").Scan(&count)
+	if count == 0 {
+		return // already clean
 	}
 
-	// Ensure default account exists for each user (auto-migration from old schema)
+	log.Println("Fixing legacy airdrops schema: removing account_id column...")
+
+	// Step 1: Create new table with correct schema
+	DB.Exec(`CREATE TABLE IF NOT EXISTS airdrops_new (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		name TEXT NOT NULL,
+		chain TEXT NOT NULL,
+		category TEXT DEFAULT 'rumored',
+		priority TEXT DEFAULT 'medium',
+		status TEXT DEFAULT 'active',
+		url TEXT,
+		deadline DATETIME,
+		notes TEXT,
+		created_at DATETIME,
+		updated_at DATETIME
+	)`)
+
+	// Step 2: Copy data (only columns that exist in new schema)
+	DB.Exec(`INSERT INTO airdrops_new (id, user_id, name, chain, category, priority, status, url, deadline, notes, created_at, updated_at)
+		SELECT id, user_id, name, chain, category, priority, status, url, deadline, notes, created_at, updated_at FROM airdrops`)
+
+	// Step 3: Drop old table and rename
+	DB.Exec(`DROP TABLE IF EXISTS airdrops`)
+	DB.Exec(`ALTER TABLE airdrops_new RENAME TO airdrops`)
+
+	log.Println("Legacy airdrops schema fixed successfully")
 }
