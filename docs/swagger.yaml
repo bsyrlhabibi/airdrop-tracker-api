@@ -1,0 +1,713 @@
+basePath: /
+definitions:
+  handler.AuthResponse:
+    properties:
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/model.User'
+    type: object
+  handler.CreateAirdropRequest:
+    properties:
+      category:
+        example: rumored
+        type: string
+      chain:
+        example: Ethereum
+        type: string
+      name:
+        example: zkSync
+        type: string
+      notes:
+        example: Bridge weekly
+        type: string
+      priority:
+        example: high
+        type: string
+      url:
+        example: https://zksync.io
+        type: string
+    type: object
+  handler.CreateTaskRequest:
+    properties:
+      description:
+        example: Swap ETH to USDC
+        type: string
+      frequency:
+        example: weekly
+        type: string
+      wallet_id:
+        type: integer
+    type: object
+  handler.CreateWalletRequest:
+    properties:
+      address:
+        example: 0x7245...139b
+        type: string
+      chain:
+        example: Ethereum
+        type: string
+      label:
+        example: Main Wallet
+        type: string
+    type: object
+  handler.DashboardSummary:
+    properties:
+      active_airdrops:
+        example: 8
+        type: integer
+      completed_tasks:
+        example: 30
+        type: integer
+      pending_tasks:
+        example: 15
+        type: integer
+      total_airdrops:
+        example: 12
+        type: integer
+      total_tasks:
+        example: 45
+        type: integer
+      total_wallets:
+        example: 3
+        type: integer
+    type: object
+  handler.LoginRequest:
+    properties:
+      email:
+        example: user@email.com
+        type: string
+      password:
+        example: secret123
+        type: string
+    type: object
+  handler.RegisterRequest:
+    properties:
+      email:
+        example: user@email.com
+        type: string
+      name:
+        example: Bita
+        type: string
+      password:
+        example: secret123
+        type: string
+    type: object
+  model.Airdrop:
+    properties:
+      category:
+        type: string
+      chain:
+        type: string
+      created_at:
+        type: string
+      deadline:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      notes:
+        type: string
+      priority:
+        type: string
+      status:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/model.Task'
+        type: array
+      updated_at:
+        type: string
+      url:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  model.Task:
+    properties:
+      airdrop_id:
+        type: integer
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      frequency:
+        type: string
+      gas_spent:
+        type: number
+      id:
+        type: integer
+      is_completed:
+        type: boolean
+      next_due:
+        type: string
+      tx_hash:
+        type: string
+      wallet_id:
+        type: integer
+    type: object
+  model.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  model.Wallet:
+    properties:
+      address:
+        type: string
+      chain:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      user_id:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@airdrop-tracker.local
+    name: Bita
+  description: Personal airdrop task management API
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Airdrop Tracker API
+  version: "1.0"
+paths:
+  /api/airdrops:
+    get:
+      description: Get all airdrops for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Airdrop'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all airdrops
+      tags:
+      - Airdrops
+    post:
+      consumes:
+      - application/json
+      description: Add new airdrop to track
+      parameters:
+      - description: Airdrop data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateAirdropRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Airdrop'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create airdrop
+      tags:
+      - Airdrops
+  /api/airdrops/{id}:
+    delete:
+      description: Remove airdrop and its tasks
+      parameters:
+      - description: Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete airdrop
+      tags:
+      - Airdrops
+    get:
+      description: Get single airdrop by ID
+      parameters:
+      - description: Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Airdrop'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get airdrop detail
+      tags:
+      - Airdrops
+    put:
+      consumes:
+      - application/json
+      description: Update existing airdrop
+      parameters:
+      - description: Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateAirdropRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Airdrop'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update airdrop
+      tags:
+      - Airdrops
+  /api/airdrops/{id}/tasks:
+    get:
+      description: Get all tasks for a specific airdrop
+      parameters:
+      - description: Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Task'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List tasks for airdrop
+      tags:
+      - Tasks
+    post:
+      consumes:
+      - application/json
+      description: Add new task to an airdrop
+      parameters:
+      - description: Airdrop ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create task
+      tags:
+      - Tasks
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: Register data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register new user
+      tags:
+      - Auth
+  /api/dashboard:
+    get:
+      description: Get summary statistics for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.DashboardSummary'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get dashboard stats
+      tags:
+      - Dashboard
+  /api/tasks/{id}:
+    delete:
+      description: Remove a task permanently
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete task
+      tags:
+      - Tasks
+  /api/tasks/{id}/complete:
+    put:
+      description: Mark a task as done
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Mark task as completed
+      tags:
+      - Tasks
+  /api/tasks/{id}/reset:
+    put:
+      description: Reset a completed task back to pending
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reset task
+      tags:
+      - Tasks
+  /api/wallets:
+    get:
+      description: Get all wallets for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Wallet'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all wallets
+      tags:
+      - Wallets
+    post:
+      consumes:
+      - application/json
+      description: Register a new wallet address
+      parameters:
+      - description: Wallet data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateWalletRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Wallet'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add wallet
+      tags:
+      - Wallets
+  /api/wallets/{id}:
+    delete:
+      description: Delete a wallet address
+      parameters:
+      - description: Wallet ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Remove wallet
+      tags:
+      - Wallets
+securityDefinitions:
+  BearerAuth:
+    description: Enter "Bearer {token}"
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
