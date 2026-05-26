@@ -8,4 +8,4 @@ vendor/
 .git
 .gitignore
 *.md
-docs/
+# docs/  # needed by Dockerfile COPY
