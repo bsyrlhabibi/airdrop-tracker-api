@@ -6,6 +6,8 @@ import (
 	"github.com/bsyrlhabibi/airdrop/internal/config"
 	"github.com/bsyrlhabibi/airdrop/internal/database"
 	"github.com/bsyrlhabibi/airdrop/internal/router"
+
+	_ "github.com/bsyrlhabibi/airdrop/docs" // swagger docs
 )
 
 // @title           Airdrop Tracker API
@@ -19,8 +21,9 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      localhost:8080
+// @host      airdrop-tracker-api.fly.dev
 // @BasePath  /
+// @schemes   https
 
 // @securityDefinitions.apikey BearerAuth
 // @in header

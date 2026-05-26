@@ -175,7 +175,7 @@ definitions:
       user_id:
         type: integer
     type: object
-host: localhost:8080
+host: airdrop-tracker-api.fly.dev
 info:
   contact:
     email: support@airdrop-tracker.local
@@ -704,6 +704,8 @@ paths:
       summary: Remove wallet
       tags:
       - Wallets
+schemes:
+- https
 securityDefinitions:
   BearerAuth:
     description: Enter "Bearer {token}"

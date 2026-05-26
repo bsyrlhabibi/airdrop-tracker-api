@@ -1,4 +1,7 @@
 {
+    "schemes": [
+        "https"
+    ],
     "swagger": "2.0",
     "info": {
         "description": "Personal airdrop task management API",
@@ -14,7 +17,7 @@
         },
         "version": "1.0"
     },
-    "host": "localhost:8080",
+    "host": "airdrop-tracker-api.fly.dev",
     "basePath": "/",
     "paths": {
         "/api/airdrops": {
