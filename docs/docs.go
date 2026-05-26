@@ -1542,7 +1542,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "airdrop-tracker-api.fly.dev",
+	Host:             "airdrop-tracker-api-v1.fly.dev",
 	BasePath:         "/",
 	Schemes:          []string{"https"},
 	Title:            "Airdrop Tracker API",

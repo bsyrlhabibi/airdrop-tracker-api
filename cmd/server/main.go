@@ -21,7 +21,7 @@ import (
 // @license.name  MIT
 // @license.url   https://opensource.org/licenses/MIT
 
-// @host      airdrop-tracker-api.fly.dev
+// @host      airdrop-tracker-api-v1.fly.dev
 // @BasePath  /
 // @schemes   https
 

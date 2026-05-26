@@ -17,7 +17,7 @@
         },
         "version": "1.0"
     },
-    "host": "airdrop-tracker-api.fly.dev",
+    "host": "airdrop-tracker-api-v1.fly.dev",
     "basePath": "/",
     "paths": {
         "/api/accounts": {

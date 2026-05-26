@@ -264,7 +264,7 @@ definitions:
       user_id:
         type: integer
     type: object
-host: airdrop-tracker-api.fly.dev
+host: airdrop-tracker-api-v1.fly.dev
 info:
   contact:
     email: support@airdrop-tracker.local
