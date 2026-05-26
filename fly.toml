@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for airdrop-tracker-api on 2026-05-26T20:15:24Z
+# fly.toml app configuration file generated for airdrop-tracker-api-v1 on 2026-05-26T20:41:09Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'airdrop-tracker-api'
+app = 'airdrop-tracker-api-v1'
 primary_region = 'dfw'
 
 [build]
