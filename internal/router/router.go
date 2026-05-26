@@ -1,11 +1,14 @@
 package router
 
 import (
+	"time"
+
 	"github.com/bsyrlhabibi/airdrop/internal/config"
 	"github.com/bsyrlhabibi/airdrop/internal/database"
 	"github.com/bsyrlhabibi/airdrop/internal/handler"
 	"github.com/bsyrlhabibi/airdrop/internal/middleware"
 	"github.com/bsyrlhabibi/airdrop/internal/repository"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -13,10 +16,21 @@ import (
 
 func Setup(cfg *config.Config) *gin.Engine {
 	r := gin.Default()
-	db := database.DB
+
+	// CORS — allow frontend origin
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// Swagger UI
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	db := database.DB
 
 	// Repositories
 	userRepo := repository.NewUserRepo(db)
