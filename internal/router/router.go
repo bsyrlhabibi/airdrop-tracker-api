@@ -97,6 +97,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 	auth.POST("/wallets", walletH.Create)
 	auth.DELETE("/wallets/:id", walletH.Delete)
 
+	// Export
+	exportH := handler.NewExportHandler(db)
+	auth.GET("/export/excel", exportH.ExportExcel)
+
 	// Dashboard
 	auth.GET("/dashboard", dashboardH.Summary)
 	auth.GET("/dashboard/comparison", accountH.GetComparison)
