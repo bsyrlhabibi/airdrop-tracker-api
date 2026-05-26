@@ -1,0 +1,11 @@
+bin/
+data/*.db
+.env
+.idea/
+.vscode/
+vendor/
+.DS_Store
+.git
+.gitignore
+*.md
+docs/
