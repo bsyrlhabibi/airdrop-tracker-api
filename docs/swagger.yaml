@@ -1,5 +1,26 @@
 basePath: /
 definitions:
+  handler.AccountStats:
+    properties:
+      active_airdrops:
+        type: integer
+      color:
+        type: string
+      completed_tasks:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      pending_tasks:
+        type: integer
+      total_airdrops:
+        type: integer
+      total_tasks:
+        type: integer
+      total_wallets:
+        type: integer
+    type: object
   handler.AuthResponse:
     properties:
       token:
@@ -7,8 +28,23 @@ definitions:
       user:
         $ref: '#/definitions/model.User'
     type: object
+  handler.CreateAccountRequest:
+    properties:
+      color:
+        example: '#3B82F6'
+        type: string
+      name:
+        example: Akun 1
+        type: string
+      notes:
+        example: Main sybil account
+        type: string
+    type: object
   handler.CreateAirdropRequest:
     properties:
+      account_id:
+        example: 1
+        type: integer
       category:
         example: rumored
         type: string
@@ -41,6 +77,9 @@ definitions:
     type: object
   handler.CreateWalletRequest:
     properties:
+      account_id:
+        example: 1
+        type: integer
       address:
         example: 0x7245...139b
         type: string
@@ -53,23 +92,23 @@ definitions:
     type: object
   handler.DashboardSummary:
     properties:
+      accounts:
+        items:
+          $ref: '#/definitions/handler.AccountStats'
+        type: array
       active_airdrops:
-        example: 8
         type: integer
       completed_tasks:
-        example: 30
         type: integer
       pending_tasks:
-        example: 15
+        type: integer
+      total_accounts:
         type: integer
       total_airdrops:
-        example: 12
         type: integer
       total_tasks:
-        example: 45
         type: integer
       total_wallets:
-        example: 3
         type: integer
     type: object
   handler.LoginRequest:
@@ -93,8 +132,52 @@ definitions:
         example: secret123
         type: string
     type: object
+  handler.UpdateAccountRequest:
+    properties:
+      color:
+        example: '#EF4444'
+        type: string
+      name:
+        example: Akun 1
+        type: string
+      notes:
+        example: Updated notes
+        type: string
+    type: object
+  model.Account:
+    properties:
+      airdrops:
+        items:
+          $ref: '#/definitions/model.Airdrop'
+        type: array
+      color:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      notes:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: integer
+      wallets:
+        description: Relations
+        items:
+          $ref: '#/definitions/model.Wallet'
+        type: array
+    type: object
   model.Airdrop:
     properties:
+      account:
+        allOf:
+        - $ref: '#/definitions/model.Account'
+        description: Relations
+      account_id:
+        type: integer
       category:
         type: string
       chain:
@@ -162,6 +245,12 @@ definitions:
     type: object
   model.Wallet:
     properties:
+      account:
+        allOf:
+        - $ref: '#/definitions/model.Account'
+        description: Relations
+      account_id:
+        type: integer
       address:
         type: string
       chain:
@@ -188,9 +277,195 @@ info:
   title: Airdrop Tracker API
   version: "1.0"
 paths:
+  /api/accounts:
+    get:
+      description: Get all sybil accounts for authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Account'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all accounts
+      tags:
+      - Accounts
+    post:
+      consumes:
+      - application/json
+      description: Create new sybil account
+      parameters:
+      - description: Account data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Account'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create account
+      tags:
+      - Accounts
+  /api/accounts/{id}:
+    delete:
+      description: Delete account (only if empty, or use ?force=true)
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Force delete with all data
+        in: query
+        name: force
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete account
+      tags:
+      - Accounts
+    get:
+      description: Get single account by ID with wallets and airdrops
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Account'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get account detail
+      tags:
+      - Accounts
+    put:
+      consumes:
+      - application/json
+      description: Update account name, color, notes
+      parameters:
+      - description: Account ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/handler.UpdateAccountRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Account'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update account
+      tags:
+      - Accounts
   /api/airdrops:
     get:
-      description: Get all airdrops for authenticated user
+      description: Get all airdrops, optionally filtered by account_id
+      parameters:
+      - description: Filter by Account ID
+        in: query
+        name: account_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -214,7 +489,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Add new airdrop to track
+      description: Add new airdrop to track for an account
       parameters:
       - description: Airdrop data
         in: body
@@ -499,7 +774,7 @@ paths:
       - Auth
   /api/dashboard:
     get:
-      description: Get summary statistics for the authenticated user
+      description: Get summary statistics with per-account breakdown
       produces:
       - application/json
       responses:
@@ -619,7 +894,12 @@ paths:
       - Tasks
   /api/wallets:
     get:
-      description: Get all wallets for authenticated user
+      description: Get all wallets, optionally filtered by account_id
+      parameters:
+      - description: Filter by Account ID
+        in: query
+        name: account_id
+        type: integer
       produces:
       - application/json
       responses:
@@ -643,7 +923,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Register a new wallet address
+      description: Register a new wallet address to an account
       parameters:
       - description: Wallet data
         in: body

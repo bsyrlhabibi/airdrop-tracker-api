@@ -34,12 +34,14 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// Repositories
 	userRepo := repository.NewUserRepo(db)
+	accountRepo := repository.NewAccountRepo(db)
 	airdropRepo := repository.NewAirdropRepo(db)
 	taskRepo := repository.NewTaskRepo(db)
 	walletRepo := repository.NewWalletRepo(db)
 
 	// Handlers
 	authH := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
+	accountH := handler.NewAccountHandler(accountRepo)
 	airdropH := handler.NewAirdropHandler(airdropRepo)
 	taskH := handler.NewTaskHandler(taskRepo)
 	walletH := handler.NewWalletHandler(walletRepo)
@@ -54,6 +56,13 @@ func Setup(cfg *config.Config) *gin.Engine {
 	// Protected
 	auth := api.Group("/")
 	auth.Use(middleware.Auth(cfg.JWTSecret))
+
+	// Accounts (Sybil)
+	auth.GET("/accounts", accountH.List)
+	auth.POST("/accounts", accountH.Create)
+	auth.GET("/accounts/:id", accountH.Get)
+	auth.PUT("/accounts/:id", accountH.Update)
+	auth.DELETE("/accounts/:id", accountH.Delete)
 
 	// Airdrops
 	auth.GET("/airdrops", airdropH.List)

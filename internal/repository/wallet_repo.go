@@ -19,7 +19,13 @@ func (r *WalletRepo) Create(wallet *model.Wallet) error {
 
 func (r *WalletRepo) FindByUser(userID uint) ([]model.Wallet, error) {
 	var wallets []model.Wallet
-	err := r.DB.Where("user_id = ?", userID).Order("created_at DESC").Find(&wallets).Error
+	err := r.DB.Where("user_id = ?", userID).Preload("Account").Order("created_at DESC").Find(&wallets).Error
+	return wallets, err
+}
+
+func (r *WalletRepo) FindByAccount(accountID, userID uint) ([]model.Wallet, error) {
+	var wallets []model.Wallet
+	err := r.DB.Where("account_id = ? AND user_id = ?", accountID, userID).Order("created_at DESC").Find(&wallets).Error
 	return wallets, err
 }
 
@@ -30,5 +36,5 @@ func (r *WalletRepo) FindByID(id, userID uint) (*model.Wallet, error) {
 }
 
 func (r *WalletRepo) Delete(id, userID uint) error {
-	return r.DB.Where("user_id = ?", userID).Delete(&model.Wallet{}, id).Error
+	return r.DB.Where("user_id = ? AND id = ?", userID, id).Delete(&model.Wallet{}).Error
 }

@@ -17,17 +17,31 @@ func NewDashboardHandler(db *gorm.DB) *DashboardHandler {
 }
 
 type DashboardSummary struct {
-	TotalAirdrops  int64 `json:"total_airdrops" example:"12"`
-	ActiveAirdrops int64 `json:"active_airdrops" example:"8"`
-	TotalTasks     int64 `json:"total_tasks" example:"45"`
-	CompletedTasks int64 `json:"completed_tasks" example:"30"`
-	PendingTasks   int64 `json:"pending_tasks" example:"15"`
-	TotalWallets   int64 `json:"total_wallets" example:"3"`
+	TotalAirdrops  int64           `json:"total_airdrops"`
+	ActiveAirdrops int64           `json:"active_airdrops"`
+	TotalTasks     int64           `json:"total_tasks"`
+	CompletedTasks int64           `json:"completed_tasks"`
+	PendingTasks   int64           `json:"pending_tasks"`
+	TotalWallets   int64           `json:"total_wallets"`
+	TotalAccounts  int64           `json:"total_accounts"`
+	Accounts       []AccountStats  `json:"accounts,omitempty"`
+}
+
+type AccountStats struct {
+	ID             uint   `json:"id"`
+	Name           string `json:"name"`
+	Color          string `json:"color"`
+	TotalAirdrops  int64  `json:"total_airdrops"`
+	ActiveAirdrops int64  `json:"active_airdrops"`
+	TotalTasks     int64  `json:"total_tasks"`
+	CompletedTasks int64  `json:"completed_tasks"`
+	PendingTasks   int64  `json:"pending_tasks"`
+	TotalWallets   int64  `json:"total_wallets"`
 }
 
 // Dashboard Summary godoc
 // @Summary      Get dashboard stats
-// @Description  Get summary statistics for the authenticated user
+// @Description  Get summary statistics with per-account breakdown
 // @Tags         Dashboard
 // @Produce      json
 // @Security     BearerAuth
@@ -37,6 +51,7 @@ type DashboardSummary struct {
 func (h *DashboardHandler) Summary(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 
+	// Overall stats
 	var totalAirdrops int64
 	h.DB.Model(&model.Airdrop{}).Where("user_id = ?", userID).Count(&totalAirdrops)
 
@@ -58,6 +73,49 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 	var totalWallets int64
 	h.DB.Model(&model.Wallet{}).Where("user_id = ?", userID).Count(&totalWallets)
 
+	var totalAccounts int64
+	h.DB.Model(&model.Account{}).Where("user_id = ?", userID).Count(&totalAccounts)
+
+	// Per-account stats
+	var accounts []model.Account
+	h.DB.Where("user_id = ?", userID).Order("created_at ASC").Find(&accounts)
+
+	var accountStats []AccountStats
+	for _, acc := range accounts {
+		var accAirdrops int64
+		h.DB.Model(&model.Airdrop{}).Where("account_id = ?", acc.ID).Count(&accAirdrops)
+
+		var accActiveAirdrops int64
+		h.DB.Model(&model.Airdrop{}).Where("account_id = ? AND status = ?", acc.ID, "active").Count(&accActiveAirdrops)
+
+		var accTotalTasks int64
+		h.DB.Model(&model.Task{}).
+			Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
+			Where("airdrops.account_id = ?", acc.ID).
+			Count(&accTotalTasks)
+
+		var accCompletedTasks int64
+		h.DB.Model(&model.Task{}).
+			Joins("JOIN airdrops ON airdrops.id = tasks.airdrop_id").
+			Where("airdrops.account_id = ? AND tasks.is_completed = ?", acc.ID, true).
+			Count(&accCompletedTasks)
+
+		var accWallets int64
+		h.DB.Model(&model.Wallet{}).Where("account_id = ?", acc.ID).Count(&accWallets)
+
+		accountStats = append(accountStats, AccountStats{
+			ID:             acc.ID,
+			Name:           acc.Name,
+			Color:          acc.Color,
+			TotalAirdrops:  accAirdrops,
+			ActiveAirdrops: accActiveAirdrops,
+			TotalTasks:     accTotalTasks,
+			CompletedTasks: accCompletedTasks,
+			PendingTasks:   accTotalTasks - accCompletedTasks,
+			TotalWallets:   accWallets,
+		})
+	}
+
 	c.JSON(http.StatusOK, DashboardSummary{
 		TotalAirdrops:  totalAirdrops,
 		ActiveAirdrops: activeAirdrops,
@@ -65,5 +123,7 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 		CompletedTasks: completedTasks,
 		PendingTasks:   totalTasks - completedTasks,
 		TotalWallets:   totalWallets,
+		TotalAccounts:  totalAccounts,
+		Accounts:       accountStats,
 	})
 }

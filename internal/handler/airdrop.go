@@ -18,25 +18,40 @@ func NewAirdropHandler(repo *repository.AirdropRepo) *AirdropHandler {
 }
 
 type CreateAirdropRequest struct {
-	Name     string `json:"name" example:"zkSync"`
-	Chain    string `json:"chain" example:"Ethereum"`
-	Category string `json:"category" example:"rumored"`
-	Priority string `json:"priority" example:"high"`
-	URL      string `json:"url" example:"https://zksync.io"`
-	Notes    string `json:"notes" example:"Bridge weekly"`
+	AccountID uint   `json:"account_id" example:"1"`
+	Name      string `json:"name" example:"zkSync"`
+	Chain     string `json:"chain" example:"Ethereum"`
+	Category  string `json:"category" example:"rumored"`
+	Priority  string `json:"priority" example:"high"`
+	URL       string `json:"url" example:"https://zksync.io"`
+	Notes     string `json:"notes" example:"Bridge weekly"`
 }
 
 // List Airdrops godoc
 // @Summary      List all airdrops
-// @Description  Get all airdrops for authenticated user
+// @Description  Get all airdrops, optionally filtered by account_id
 // @Tags         Airdrops
 // @Produce      json
 // @Security     BearerAuth
+// @Param        account_id query int false "Filter by Account ID"
 // @Success      200  {array}   model.Airdrop
 // @Failure      401  {object}  map[string]string
 // @Router       /api/airdrops [get]
 func (h *AirdropHandler) List(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
+	accountIDStr := c.Query("account_id")
+
+	if accountIDStr != "" {
+		accountID, _ := strconv.ParseUint(accountIDStr, 10, 64)
+		airdrops, err := h.Repo.FindByAccount(uint(accountID), userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, airdrops)
+		return
+	}
+
 	airdrops, err := h.Repo.FindByUser(userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -47,7 +62,7 @@ func (h *AirdropHandler) List(c *gin.Context) {
 
 // Create Airdrop godoc
 // @Summary      Create airdrop
-// @Description  Add new airdrop to track
+// @Description  Add new airdrop to track for an account
 // @Tags         Airdrops
 // @Accept       json
 // @Produce      json
@@ -59,17 +74,29 @@ func (h *AirdropHandler) List(c *gin.Context) {
 // @Router       /api/airdrops [post]
 func (h *AirdropHandler) Create(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
-	var a model.Airdrop
-	if err := c.ShouldBindJSON(&a); err != nil {
+	var req CreateAirdropRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	a.UserID = userID
-	if err := h.Repo.Create(&a); err != nil {
+
+	airdrop := &model.Airdrop{
+		UserID:    userID,
+		AccountID: req.AccountID,
+		Name:      req.Name,
+		Chain:     req.Chain,
+		Category:  req.Category,
+		Priority:  req.Priority,
+		URL:       req.URL,
+		Notes:     req.Notes,
+	}
+
+	if err := h.Repo.Create(airdrop); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, a)
+
+	c.JSON(http.StatusCreated, airdrop)
 }
 
 // Get Airdrop godoc

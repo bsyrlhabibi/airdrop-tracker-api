@@ -20,6 +20,289 @@
     "host": "airdrop-tracker-api.fly.dev",
     "basePath": "/",
     "paths": {
+        "/api/accounts": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get all sybil accounts for authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "List all accounts",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.Account"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Create new sybil account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Create account",
+                "parameters": [
+                    {
+                        "description": "Account data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CreateAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/accounts/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get single account by ID with wallets and airdrops",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Get account detail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update account name, color, notes",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Update account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updated data",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.UpdateAccountRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete account (only if empty, or use ?force=true)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Accounts"
+                ],
+                "summary": "Delete account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Force delete with all data",
+                        "name": "force",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/airdrops": {
             "get": {
                 "security": [
@@ -27,7 +310,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all airdrops for authenticated user",
+                "description": "Get all airdrops, optionally filtered by account_id",
                 "produces": [
                     "application/json"
                 ],
@@ -35,6 +318,14 @@
                     "Airdrops"
                 ],
                 "summary": "List all airdrops",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter by Account ID",
+                        "name": "account_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -62,7 +353,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Add new airdrop to track",
+                "description": "Add new airdrop to track for an account",
                 "consumes": [
                     "application/json"
                 ],
@@ -508,7 +799,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get summary statistics for the authenticated user",
+                "description": "Get summary statistics with per-account breakdown",
                 "produces": [
                     "application/json"
                 ],
@@ -698,7 +989,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get all wallets for authenticated user",
+                "description": "Get all wallets, optionally filtered by account_id",
                 "produces": [
                     "application/json"
                 ],
@@ -706,6 +997,14 @@
                     "Wallets"
                 ],
                 "summary": "List all wallets",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Filter by Account ID",
+                        "name": "account_id",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -733,7 +1032,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Register a new wallet address",
+                "description": "Register a new wallet address to an account",
                 "consumes": [
                     "application/json"
                 ],
@@ -831,6 +1130,38 @@
         }
     },
     "definitions": {
+        "handler.AccountStats": {
+            "type": "object",
+            "properties": {
+                "active_airdrops": {
+                    "type": "integer"
+                },
+                "color": {
+                    "type": "string"
+                },
+                "completed_tasks": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "pending_tasks": {
+                    "type": "integer"
+                },
+                "total_airdrops": {
+                    "type": "integer"
+                },
+                "total_tasks": {
+                    "type": "integer"
+                },
+                "total_wallets": {
+                    "type": "integer"
+                }
+            }
+        },
         "handler.AuthResponse": {
             "type": "object",
             "properties": {
@@ -842,9 +1173,30 @@
                 }
             }
         },
+        "handler.CreateAccountRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string",
+                    "example": "#3B82F6"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Akun 1"
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Main sybil account"
+                }
+            }
+        },
         "handler.CreateAirdropRequest": {
             "type": "object",
             "properties": {
+                "account_id": {
+                    "type": "integer",
+                    "example": 1
+                },
                 "category": {
                     "type": "string",
                     "example": "rumored"
@@ -890,6 +1242,10 @@
         "handler.CreateWalletRequest": {
             "type": "object",
             "properties": {
+                "account_id": {
+                    "type": "integer",
+                    "example": 1
+                },
                 "address": {
                     "type": "string",
                     "example": "0x7245...139b"
@@ -907,29 +1263,32 @@
         "handler.DashboardSummary": {
             "type": "object",
             "properties": {
+                "accounts": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.AccountStats"
+                    }
+                },
                 "active_airdrops": {
-                    "type": "integer",
-                    "example": 8
+                    "type": "integer"
                 },
                 "completed_tasks": {
-                    "type": "integer",
-                    "example": 30
+                    "type": "integer"
                 },
                 "pending_tasks": {
-                    "type": "integer",
-                    "example": 15
+                    "type": "integer"
+                },
+                "total_accounts": {
+                    "type": "integer"
                 },
                 "total_airdrops": {
-                    "type": "integer",
-                    "example": 12
+                    "type": "integer"
                 },
                 "total_tasks": {
-                    "type": "integer",
-                    "example": 45
+                    "type": "integer"
                 },
                 "total_wallets": {
-                    "type": "integer",
-                    "example": 3
+                    "type": "integer"
                 }
             }
         },
@@ -963,9 +1322,76 @@
                 }
             }
         },
+        "handler.UpdateAccountRequest": {
+            "type": "object",
+            "properties": {
+                "color": {
+                    "type": "string",
+                    "example": "#EF4444"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Akun 1"
+                },
+                "notes": {
+                    "type": "string",
+                    "example": "Updated notes"
+                }
+            }
+        },
+        "model.Account": {
+            "type": "object",
+            "properties": {
+                "airdrops": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Airdrop"
+                    }
+                },
+                "color": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "wallets": {
+                    "description": "Relations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Wallet"
+                    }
+                }
+            }
+        },
         "model.Airdrop": {
             "type": "object",
             "properties": {
+                "account": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    ]
+                },
+                "account_id": {
+                    "type": "integer"
+                },
                 "category": {
                     "type": "string"
                 },
@@ -1068,6 +1494,17 @@
         "model.Wallet": {
             "type": "object",
             "properties": {
+                "account": {
+                    "description": "Relations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.Account"
+                        }
+                    ]
+                },
+                "account_id": {
+                    "type": "integer"
+                },
                 "address": {
                     "type": "string"
                 },
