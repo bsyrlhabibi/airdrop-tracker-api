@@ -10,10 +10,11 @@ Panduan lengkap untuk menjalankan project ini di komputer kamu, dari nol sampai 
 2. [Install Go](#2-install-go)
 3. [Clone Project](#3-clone-project)
 4. [Setup Environment](#4-setup-environment)
-5. [Jalankan Server](#5-jalankan-server)
-6. [Buka Swagger UI](#6-buka-swagger-ui)
-7. [Test API Manual](#7-test-api-manual)
-8. [Troubleshooting](#8-troubleshooting)
+5. [Install Dependencies](#5-install-dependencies)
+6. [Jalankan Server](#6-jalankan-server)
+7. [Buka Swagger UI](#7-buka-swagger-ui)
+8. [Test API Manual](#8-test-api-manual)
+9. [Troubleshooting](#9-troubleshooting)
 
 ---
 
@@ -111,7 +112,33 @@ DB_PATH=data/airdrop.db
 
 ---
 
-## 5. Jalankan Server
+## 5. Install Dependencies
+
+Setelah clone dan setup `.env`, **wajib jalankan ini dulu** untuk download semua library yang dibutuhkan:
+
+```bash
+go mod tidy
+```
+
+Perintah ini akan:
+- Download semua dependency (Gin, GORM, JWT, dll)
+- Bersihkan dependency yang tidak dipakai
+- Buat/update file `go.sum` (checksum)
+
+> **Tanpa ini, project tidak bisa jalan!**
+
+Kalau berhasil, outputnya kurang lebih:
+
+```
+go: finding module for package gorm.io/gorm
+go: finding module for package github.com/gin-gonic/gin
+go: found github.com/gin-gonic/gin in github.com/gin-gonic/gin v1.12.0
+...
+```
+
+---
+
+## 6. Jalankan Server
 
 ### Cara 1: Pakai Makefile (Recommended)
 
@@ -141,7 +168,7 @@ Swagger UI: http://localhost:8080/swagger/index.html
 
 ---
 
-## 6. Buka Swagger UI
+## 7. Buka Swagger UI
 
 1. Buka browser (Chrome, Firefox, Safari, dll)
 2. Ketik di address bar:
@@ -205,7 +232,7 @@ Contoh buat airdrop pertama:
 
 ---
 
-## 7. Test API Manual (Terminal)
+## 8. Test API Manual (Terminal)
 
 Selain Swagger, kamu juga bisa test pakai `curl`:
 
@@ -245,7 +272,7 @@ curl http://localhost:8080/api/dashboard \
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 ### "command not found: go"
 → Go belum ter-install atau belum masuk PATH. Ulangi [Step 2](#2-install-go).
@@ -263,7 +290,7 @@ mkdir -p data
 ```
 
 ### Swagger UI blank / 404
-→ Pastikan server jalan (Step 5). Coba regenerate docs:
+→ Pastikan server jalan (Step 6). Coba regenerate docs:
 ```bash
 swag init -g cmd/server/main.go
 make run
@@ -271,6 +298,12 @@ make run
 
 ### "connection refused" saat test API
 → Server belum jalan. Pastikan Terminal tempat `make run` masih terbuka dan menampilkan `Listening on :8080`.
+
+### "missing go.sum entry" atau error dependency
+→ Jalankan ulang:
+```bash
+go mod tidy
+```
 
 ### Lupa password / token expired
 → Register ulang dengan email baru, atau hapus database dan mulai fresh:
@@ -284,20 +317,27 @@ make run
 ## Perintah Berguna
 
 ```bash
-make run          # Jalankan server
-make build        # Build binary (hasilnya di bin/server)
-make clean        # Hapus database & binary
-make test         # Jalankan test (jika ada)
-
-swag init -g cmd/server/main.go   # Regenerate Swagger docs
+go mod tidy                     # Install/update dependencies
+make run                        # Jalankan server
+make build                      # Build binary (hasilnya di bin/server)
+make clean                      # Hapus database & binary
+make swag                       # Regenerate Swagger docs
+make test                       # Jalankan test (jika ada)
 ```
 
 ---
 
-## Butuh Bantuan?
+## Ringkasan Cepat (Copy-Paste)
 
-- Buka issue di GitHub
-- Atau tanya di grup project
+```bash
+git clone https://github.com/bsyrlhabibi/airdrop-tracker-api.git
+cd airdrop-tracker-api
+cp .env.example .env
+go mod tidy
+make run
+```
+
+Lalu buka browser: `http://localhost:8080/swagger/index.html`
 
 ---
 
