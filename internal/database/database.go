@@ -32,4 +32,13 @@ func Migrate() {
 		log.Fatal("Migration failed:", err)
 	}
 	log.Println("Migration done")
+
+	// Drop old account_id column from airdrops (legacy schema fix)
+	// SQLite 3.35+ supports ALTER TABLE DROP COLUMN
+	if DB.Migrator().HasColumn(&model.Airdrop{}, "account_id") {
+		log.Println("Dropping legacy account_id column from airdrops...")
+		DB.Exec("ALTER TABLE airdrops DROP COLUMN account_id")
+	}
+
+	// Ensure default account exists for each user (auto-migration from old schema)
 }
