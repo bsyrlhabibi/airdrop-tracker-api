@@ -15,7 +15,7 @@ Built with **Go + Gin + GORM + SQLite**.
 - **Account Tasks** — Daily tracking per account (pending → ongoing → finish/missed)
 - **Categories** — Kustomisasi kategori task
 - **Wallets** — Multi-wallet per account & chain
-- **Dashboard** — Stats summary + per-account comparison
+- **Dashboard** — Stats summary per account
 - **Excel Export** — 5-sheet styled export (Overview, Tasks, Wallets, Quick Reference, Airdrop Tasks)
 - **Swagger UI** — Interactive API documentation
 
@@ -70,7 +70,7 @@ airdrop-tracker-api/
 │   ├── repository/                     # Database queries (GORM)
 │   ├── handler/                        # HTTP handlers
 │   │   ├── auth.go                     #   Register + Login
-│   │   ├── account.go                  #   Account CRUD + assign/clone
+│   │   ├── account.go                  #   Account CRUD + assign
 │   │   ├── airdrop.go                  #   Airdrop CRUD
 │   │   ├── airdrop_task.go             #   AirdropTask CRUD
 │   │   ├── task.go                     #   Task CRUD + today/by-date
@@ -132,67 +132,79 @@ make run
 
 ## 📡 API Endpoints
 
-### Public
+### 🔓 Public
+
 | Method | Path                 | Description        |
 |--------|----------------------|--------------------|
 | POST   | `/api/auth/register` | Register new user  |
 | POST   | `/api/auth/login`    | Login, get JWT     |
 
-### Accounts
-| Method | Path                              | Description              |
-|--------|-----------------------------------|--------------------------|
-| GET    | `/api/accounts`                   | List all accounts        |
-| POST   | `/api/accounts`                   | Create account           |
-| GET    | `/api/accounts/:id`               | Get account detail       |
-| PUT    | `/api/accounts/:id`               | Update account           |
-| DELETE | `/api/accounts/:id`               | Delete account           |
-| POST   | `/api/accounts/:id/airdrops`      | Assign airdrop to account|
-| GET    | `/api/accounts/:id/airdrops`      | List account's airdrops  |
-| DELETE | `/api/accounts/:id/airdrops/:aid` | Remove airdrop           |
-| POST   | `/api/accounts/:id/clone`         | Clone account + wallets  |
-| GET    | `/api/accounts/:id/tasks/today`   | Today's tasks            |
-| GET    | `/api/accounts/:id/tasks/by-date` | Tasks by date            |
+### 🔒 Protected (Bearer Token)
 
-### Airdrops (Global Catalog)
-| Method | Path                  | Description     |
-|--------|-----------------------|-----------------|
-| GET    | `/api/airdrops`       | List airdrops   |
-| POST   | `/api/airdrops`       | Create airdrop  |
-| GET    | `/api/airdrops/:id`   | Get airdrop     |
-| PUT    | `/api/airdrops/:id`   | Update airdrop  |
-| DELETE | `/api/airdrops/:id`   | Delete airdrop  |
+#### Accounts
 
-### Airdrop Tasks (Templates)
+| Method | Path                           | Description               |
+|--------|--------------------------------|---------------------------|
+| GET    | `/api/accounts`                | List all accounts         |
+| POST   | `/api/accounts`                | Create account            |
+| GET    | `/api/accounts/:id`            | Get account detail        |
+| PUT    | `/api/accounts/:id`            | Update account            |
+| DELETE | `/api/accounts/:id`            | Delete account            |
+| POST   | `/api/accounts/:id/airdrops`   | Assign airdrop to account |
+| DELETE | `/api/accounts/:id/airdrops/:airdrop_id` | Remove airdrop  |
+
+#### Airdrops (Global Catalog)
+
+| Method | Path                  | Description        |
+|--------|-----------------------|--------------------|
+| GET    | `/api/airdrops`       | List airdrops      |
+| POST   | `/api/airdrops`       | Create airdrop     |
+| GET    | `/api/airdrops/:id`   | Get airdrop detail |
+| PUT    | `/api/airdrops/:id`   | Update airdrop     |
+| DELETE | `/api/airdrops/:id`   | Delete airdrop     |
+
+#### Airdrop Tasks (Templates)
+
 | Method | Path                          | Description          |
 |--------|-------------------------------|----------------------|
-| GET    | `/api/airdrops/:id/tasks`     | List tasks           |
-| POST   | `/api/airdrops/:id/tasks`     | Create task          |
-| POST   | `/api/airdrops/:id/tasks/bulk`| Bulk create tasks    |
-| PUT    | `/api/airdrops/:id/tasks/reorder` | Reorder tasks  |
-| PUT    | `/api/airdrop-tasks/:id`      | Update task          |
-| DELETE | `/api/airdrop-tasks/:id`      | Delete task          |
+| GET    | `/api/airdrops/:id/tasks`     | List template tasks  |
+| POST   | `/api/airdrops/:id/tasks`     | Create template task |
+| PUT    | `/api/airdrop-tasks/:id`      | Update template task |
+| DELETE | `/api/airdrop-tasks/:id`      | Delete template task |
 
-### Account Tasks (Daily Tracking)
-| Method | Path                            | Description        |
-|--------|---------------------------------|--------------------|
-| GET    | `/api/account-airdrops/:id/tasks` | List tasks       |
-| POST   | `/api/account-airdrops/:id/tasks` | Create task      |
-| PUT    | `/api/tasks/:id`                | Update task        |
-| DELETE | `/api/tasks/:id`                | Delete task        |
+#### Account Tasks (Daily Tracking)
 
-### Other
-| Method | Path                       | Description          |
-|--------|----------------------------|----------------------|
-| GET    | `/api/categories`          | List categories      |
-| POST   | `/api/categories`          | Create category      |
-| PUT    | `/api/categories/:id`      | Update category      |
-| DELETE | `/api/categories/:id`      | Delete category      |
-| GET    | `/api/wallets`             | List wallets         |
-| POST   | `/api/wallets`             | Add wallet           |
-| DELETE | `/api/wallets/:id`         | Delete wallet        |
-| GET    | `/api/dashboard`           | Stats summary        |
-| GET    | `/api/dashboard/comparison`| Account comparison   |
-| GET    | `/api/export/excel`        | Export to Excel      |
+| Method | Path                              | Description              |
+|--------|-----------------------------------|--------------------------|
+| POST   | `/api/account-airdrops/:id/tasks` | Create daily task        |
+| PUT    | `/api/tasks/:id`                  | Update task status       |
+| DELETE | `/api/tasks/:id`                  | Delete task              |
+| GET    | `/api/accounts/:id/tasks/today`   | Get today's tasks        |
+| GET    | `/api/accounts/:id/tasks/by-date` | Get tasks by date        |
+
+#### Categories
+
+| Method | Path                 | Description      |
+|--------|----------------------|------------------|
+| GET    | `/api/categories`    | List categories  |
+| POST   | `/api/categories`    | Create category  |
+| PUT    | `/api/categories/:id`| Update category  |
+| DELETE | `/api/categories/:id`| Delete category  |
+
+#### Wallets
+
+| Method | Path              | Description    |
+|--------|-------------------|----------------|
+| GET    | `/api/wallets`    | List wallets   |
+| POST   | `/api/wallets`    | Add wallet     |
+| DELETE | `/api/wallets/:id`| Delete wallet  |
+
+#### Dashboard & Export
+
+| Method | Path                | Description              |
+|--------|---------------------|--------------------------|
+| GET    | `/api/dashboard`    | Stats summary            |
+| GET    | `/api/export/excel` | Export to Excel (5 sheets) |
 
 ---
 
@@ -212,6 +224,7 @@ make run
 make run        # Jalankan server
 make build      # Build binary → bin/server
 make swag       # Regenerate Swagger docs
+make swag-install # Install swag CLI
 make test       # Run tests
 make clean      # Hapus database & binary
 make deploy     # Deploy ke Fly.io
