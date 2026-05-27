@@ -37,17 +37,18 @@ func (r *TaskRepo) Delete(id uint) error {
 	return r.DB.Delete(&model.Task{}, id).Error
 }
 
-// FindTodayByUser finds all tasks for a user through account-airdrops and accounts.
-func (r *TaskRepo) FindTodayByUser(userID uint) ([]model.Task, error) {
+// FindTodayByAccount finds all tasks for an account on a specific date.
+// Includes: tasks with matching date, daily/weekly/monthly tasks (recurring), and tasks with no date.
+func (r *TaskRepo) FindTodayByAccount(accountID uint, date string) ([]model.Task, error) {
 	var tasks []model.Task
 	err := r.DB.
 		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
-		Joins("JOIN accounts ON accounts.id = account_airdrops.account_id").
-		Where("accounts.user_id = ?", userID).
+		Where("account_airdrops.account_id = ?", accountID).
+		Where("tasks.date = ? OR tasks.frequency != 'once'", date).
 		Preload("Category").
 		Preload("AccountAirdrop").
 		Preload("AccountAirdrop.Airdrop").
-		Order("tasks.created_at DESC").
+		Order("tasks.status ASC, tasks.created_at DESC").
 		Find(&tasks).Error
 	return tasks, err
 }

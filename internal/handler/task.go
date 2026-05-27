@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/bsyrlhabibi/airdrop/internal/model"
 	"github.com/bsyrlhabibi/airdrop/internal/repository"
@@ -19,10 +20,11 @@ func NewTaskHandler(repo *repository.TaskRepo, aaRepo *repository.AccountAirdrop
 }
 
 type CreateTaskRequest struct {
-	Name       string `json:"name" binding:"required" example:"Bridge 0.1 ETH"`
-	CategoryID *uint  `json:"category_id"`
-	Status     string `json:"status" example:"pending"`
-	Date       string `json:"date" example:"2025-01-15"`
+	Name      string `json:"name" binding:"required" example:"Bridge 0.1 ETH"`
+	CategoryID *uint `json:"category_id"`
+	Status    string `json:"status" example:"pending"`
+	Frequency string `json:"frequency" example:"once"`
+	Date      string `json:"date" example:"2025-01-15"`
 }
 
 // List Tasks godoc
@@ -33,7 +35,6 @@ type CreateTaskRequest struct {
 // @Security     BearerAuth
 // @Param        id   path      int  true  "Account Airdrop ID"
 // @Success      200  {array}   model.Task
-// @Failure      401  {object}  map[string]string
 // @Router       /api/account-airdrops/{id}/tasks [get]
 func (h *TaskHandler) List(c *gin.Context) {
 	accountAirdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
@@ -55,8 +56,6 @@ func (h *TaskHandler) List(c *gin.Context) {
 // @Param        id   path      int               true  "Account Airdrop ID"
 // @Param        body body      CreateTaskRequest  true  "Task data"
 // @Success      201  {object}  model.Task
-// @Failure      400  {object}  map[string]string
-// @Failure      401  {object}  map[string]string
 // @Router       /api/account-airdrops/{id}/tasks [post]
 func (h *TaskHandler) Create(c *gin.Context) {
 	accountAirdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
@@ -71,16 +70,25 @@ func (h *TaskHandler) Create(c *gin.Context) {
 	if status == "" {
 		status = "pending"
 	}
+	freq := req.Frequency
+	if freq == "" {
+		freq = "once"
+	}
 
 	task := &model.Task{
 		AccountAirdropID: uint(accountAirdropID),
 		Name:             req.Name,
 		CategoryID:       req.CategoryID,
 		Status:           status,
+		Frequency:        freq,
 	}
 
 	if req.Date != "" {
 		task.Date = parseDate(req.Date)
+	} else {
+		// Default to today
+		now := time.Now()
+		task.Date = &now
 	}
 
 	if err := h.Repo.Create(task); err != nil {
@@ -93,7 +101,7 @@ func (h *TaskHandler) Create(c *gin.Context) {
 
 // Update Task godoc
 // @Summary      Update task
-// @Description  Update task name, category, status, date
+// @Description  Update task name, category, status, date, frequency
 // @Tags         Tasks
 // @Accept       json
 // @Produce      json
@@ -126,6 +134,9 @@ func (h *TaskHandler) Update(c *gin.Context) {
 	if req.Status != "" {
 		task.Status = req.Status
 	}
+	if req.Frequency != "" {
+		task.Frequency = req.Frequency
+	}
 	if req.Date != "" {
 		task.Date = parseDate(req.Date)
 	}
@@ -146,11 +157,56 @@ func (h *TaskHandler) Update(c *gin.Context) {
 // @Security     BearerAuth
 // @Param        id   path      int  true  "Task ID"
 // @Success      200  {object}  map[string]string
-// @Failure      401  {object}  map[string]string
 // @Router       /api/tasks/{id} [delete]
 func (h *TaskHandler) Delete(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	h.Repo.Delete(uint(id))
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
+}
+
+// TodayTasks godoc
+// @Summary      Get today's tasks for account
+// @Description  Get all tasks scheduled for today across all airdrops in an account
+// @Tags         Tasks
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id   path      int  true  "Account ID"
+// @Success      200  {array}   model.Task
+// @Router       /api/accounts/{id}/tasks/today [get]
+func (h *TaskHandler) TodayTasks(c *gin.Context) {
+	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+
+	today := time.Now().Format("2006-01-02")
+	tasks, err := h.Repo.FindTodayByAccount(uint(accountID), today)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, tasks)
+}
+
+// DateTasks godoc
+// @Summary      Get tasks for a specific date
+// @Description  Get all tasks for a specific date in an account
+// @Tags         Tasks
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id    path      int    true  "Account ID"
+// @Param        date  query     string true  "Date (YYYY-MM-DD)"
+// @Success      200   {array}   model.Task
+// @Router       /api/accounts/{id}/tasks/by-date [get]
+func (h *TaskHandler) DateTasks(c *gin.Context) {
+	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
+	date := c.Query("date")
+	if date == "" {
+		date = time.Now().Format("2006-01-02")
+	}
+
+	tasks, err := h.Repo.FindTodayByAccount(uint(accountID), date)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, tasks)
 }

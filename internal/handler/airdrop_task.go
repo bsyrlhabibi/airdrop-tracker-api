@@ -22,6 +22,7 @@ type CreateAirdropTaskRequest struct {
 	Name       string `json:"name" binding:"required"`
 	CategoryID *uint  `json:"category_id"`
 	Status     string `json:"status"`
+	Frequency  string `json:"frequency"`
 	Date       string `json:"date"` // ISO date string
 }
 
@@ -84,11 +85,17 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 		status = "pending"
 	}
 
+	freq := req.Frequency
+	if freq == "" {
+		freq = "once"
+	}
+
 	task := &model.AirdropTask{
 		AirdropID:  uint(airdropID),
 		Name:       req.Name,
 		CategoryID: req.CategoryID,
 		Status:     status,
+		Frequency:  freq,
 	}
 
 	if req.Date != "" {
@@ -136,6 +143,9 @@ func (h *AirdropTaskHandler) Update(c *gin.Context) {
 	}
 	if req.Status != "" {
 		task.Status = req.Status
+	}
+	if req.Frequency != "" {
+		task.Frequency = req.Frequency
 	}
 	if req.Date != "" {
 		task.Date = parseDate(req.Date)
@@ -200,11 +210,16 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 		if status == "" {
 			status = "pending"
 		}
+		freq := req.Frequency
+		if freq == "" {
+			freq = "once"
+		}
 		task := &model.AirdropTask{
 			AirdropID:  uint(airdropID),
 			Name:       req.Name,
 			CategoryID: req.CategoryID,
 			Status:     status,
+			Frequency:  freq,
 		}
 		if req.Date != "" {
 			task.Date = parseDate(req.Date)

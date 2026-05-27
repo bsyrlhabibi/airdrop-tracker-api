@@ -109,6 +109,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 	auth.PUT("/tasks/:id", taskH.Update)
 	auth.DELETE("/tasks/:id", taskH.Delete)
 
+	// Today's tasks (per account)
+	auth.GET("/accounts/:id/tasks/today", taskH.TodayTasks)
+	auth.GET("/accounts/:id/tasks/by-date", taskH.DateTasks)
+
 	// Wallets
 	auth.GET("/wallets", walletH.List)
 	auth.POST("/wallets", walletH.Create)

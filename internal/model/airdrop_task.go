@@ -9,7 +9,8 @@ type AirdropTask struct {
 	AirdropID   uint       `json:"airdrop_id" gorm:"index;not null"`
 	CategoryID  *uint      `json:"category_id" gorm:"index"`
 	Name        string     `json:"name" gorm:"not null"`
-	Status      string     `json:"status" gorm:"default:pending"` // pending, ongoing, finish, cancel, or custom
+	Status      string     `json:"status" gorm:"default:pending"` // pending, ongoing, finish, edit, or custom
+	Frequency   string     `json:"frequency" gorm:"default:once"` // once, daily, weekly, monthly
 	Date        *time.Time `json:"date"`
 	SortOrder   int        `json:"sort_order" gorm:"default:0"`
 	CreatedAt   time.Time  `json:"created_at"`

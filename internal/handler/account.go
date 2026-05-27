@@ -247,6 +247,7 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 			Name:       gt.Name,
 			CategoryID: gt.CategoryID,
 			Status:     "pending",
+			Frequency:  gt.Frequency,
 			Date:       gt.Date,
 		})
 	}
