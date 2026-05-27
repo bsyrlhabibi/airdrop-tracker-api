@@ -28,6 +28,18 @@ type CreateAirdropRequest struct {
 	Notes     string `json:"notes" example:"Bridge weekly"`
 }
 
+type UpdateAirdropRequest struct {
+	Name      string `json:"name"`
+	Chain     string `json:"chain"`
+	Category  string `json:"category"`
+	Priority  string `json:"priority"`
+	Status    string `json:"status"`
+	URL       string `json:"url"`
+	DateStart string `json:"date_start"`
+	DateEnd   string `json:"date_end"`
+	Notes     string `json:"notes"`
+}
+
 // List Airdrops godoc
 // @Summary      List all airdrops
 // @Description  Get all global airdrops for the authenticated user
@@ -117,8 +129,8 @@ func (h *AirdropHandler) Get(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id   path      int               true  "Airdrop ID"
-// @Param        body body      model.Airdrop     true  "Updated data"
+// @Param        id   path      int                  true  "Airdrop ID"
+// @Param        body body      UpdateAirdropRequest true  "Updated data"
 // @Success      200  {object}  model.Airdrop
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
@@ -132,10 +144,43 @@ func (h *AirdropHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Not found"})
 		return
 	}
-	if err := c.ShouldBindJSON(existing); err != nil {
+
+	var req UpdateAirdropRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Apply non-empty fields
+	if req.Name != "" {
+		existing.Name = req.Name
+	}
+	if req.Chain != "" {
+		existing.Chain = req.Chain
+	}
+	if req.Category != "" {
+		existing.Category = req.Category
+	}
+	if req.Priority != "" {
+		existing.Priority = req.Priority
+	}
+	if req.Status != "" {
+		existing.Status = req.Status
+	}
+	if req.URL != "" {
+		existing.URL = req.URL
+	}
+	if req.Notes != "" {
+		existing.Notes = req.Notes
+	}
+	// Date fields: use parseDate helper for YYYY-MM-DD support
+	if req.DateStart != "" {
+		existing.DateStart = parseDate(req.DateStart)
+	}
+	if req.DateEnd != "" {
+		existing.DateEnd = parseDate(req.DateEnd)
+	}
+
 	h.Repo.Update(existing)
 	c.JSON(http.StatusOK, existing)
 }
