@@ -27,11 +27,13 @@ type CreateTaskRequest struct {
 }
 
 type UpdateTaskRequest struct {
-	Name      string `json:"name"`
-	CategoryID *uint `json:"category_id"`
-	Status    string `json:"status"`
-	Frequency string `json:"frequency"`
-	Date      string `json:"date"`
+	Name      string  `json:"name"`
+	CategoryID *uint  `json:"category_id"`
+	Status    string  `json:"status"`
+	Frequency string  `json:"frequency"`
+	Date      string  `json:"date"`
+	GasSpent  float64 `json:"gas_spent"`
+	TxHash    string  `json:"tx_hash"`
 }
 
 // List Tasks godoc
@@ -134,6 +136,12 @@ func (h *TaskHandler) Update(c *gin.Context) {
 	}
 	if req.Date != "" {
 		task.Date = parseDate(req.Date)
+	}
+	if req.GasSpent > 0 {
+		task.GasSpent = req.GasSpent
+	}
+	if req.TxHash != "" {
+		task.TxHash = req.TxHash
 	}
 
 	if err := h.Repo.Update(task); err != nil {

@@ -19,11 +19,23 @@ func NewAirdropTaskHandler(repo *repository.AirdropTaskRepo, airdropRepo *reposi
 }
 
 type CreateAirdropTaskRequest struct {
-	Name      string `json:"name" binding:"required"`
-	CategoryID *uint `json:"category_id"`
-	Status    string `json:"status"`
-	StartDate string `json:"start_date"`
-	EndDate   string `json:"end_date"`
+	Name      string  `json:"name" binding:"required"`
+	CategoryID *uint  `json:"category_id"`
+	Status    string  `json:"status"`
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	GasSpent  float64 `json:"gas_spent"`
+	TxHash    string  `json:"tx_hash"`
+}
+
+type UpdateAirdropTaskRequest struct {
+	Name      string  `json:"name"`
+	CategoryID *uint  `json:"category_id"`
+	Status    string  `json:"status"`
+	StartDate string  `json:"start_date"`
+	EndDate   string  `json:"end_date"`
+	GasSpent  float64 `json:"gas_spent"`
+	TxHash    string  `json:"tx_hash"`
 }
 
 // List godoc
@@ -90,6 +102,8 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 		Status:     status,
 		StartDate:  parseDate(req.StartDate),
 		EndDate:    parseDate(req.EndDate),
+		GasSpent:   req.GasSpent,
+		TxHash:     req.TxHash,
 	}
 
 	if err := h.Repo.Create(task); err != nil {
@@ -118,7 +132,7 @@ func (h *AirdropTaskHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var req CreateAirdropTaskRequest
+	var req UpdateAirdropTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -138,6 +152,12 @@ func (h *AirdropTaskHandler) Update(c *gin.Context) {
 	}
 	if req.EndDate != "" {
 		task.EndDate = parseDate(req.EndDate)
+	}
+	if req.GasSpent > 0 {
+		task.GasSpent = req.GasSpent
+	}
+	if req.TxHash != "" {
+		task.TxHash = req.TxHash
 	}
 
 	if err := h.Repo.Update(task); err != nil {

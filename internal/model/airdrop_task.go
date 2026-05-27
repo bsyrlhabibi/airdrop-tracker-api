@@ -11,9 +11,11 @@ type AirdropTask struct {
 	AirdropID   uint       `json:"airdrop_id" gorm:"index;not null"`
 	CategoryID  *uint      `json:"category_id" gorm:"index"`
 	Name        string     `json:"name" gorm:"not null"`
-	Status      string     `json:"status" gorm:"default:pending"` // pending, ongoing, end
+	Status      string     `json:"status" gorm:"default:pending"` // pending, ongoing, finish, missed
 	StartDate   *time.Time `json:"start_date"`
 	EndDate     *time.Time `json:"end_date"`
+	GasSpent    float64    `json:"gas_spent" gorm:"default:0"`
+	TxHash      string     `json:"tx_hash"`
 	SortOrder   int        `json:"sort_order" gorm:"default:0"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
