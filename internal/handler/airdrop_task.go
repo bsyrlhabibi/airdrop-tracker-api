@@ -3,7 +3,6 @@ package handler
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/bsyrlhabibi/airdrop/internal/model"
 	"github.com/bsyrlhabibi/airdrop/internal/repository"
@@ -20,8 +19,10 @@ func NewAirdropTaskHandler(repo *repository.AirdropTaskRepo, airdropRepo *reposi
 }
 
 type CreateAirdropTaskRequest struct {
-	Description string `json:"description" binding:"required"`
-	Frequency   string `json:"frequency"`
+	Name       string `json:"name" binding:"required"`
+	CategoryID *uint  `json:"category_id"`
+	Status     string `json:"status"`
+	Date       string `json:"date"` // ISO date string
 }
 
 // List godoc
@@ -37,7 +38,6 @@ func (h *AirdropTaskHandler) List(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	// Verify airdrop belongs to user
 	_, err := h.AirdropRepo.FindByID(uint(airdropID), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Airdrop not found"})
@@ -67,7 +67,6 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	// Verify airdrop belongs to user
 	_, err := h.AirdropRepo.FindByID(uint(airdropID), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Airdrop not found"})
@@ -80,15 +79,20 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 		return
 	}
 
-	freq := req.Frequency
-	if freq == "" {
-		freq = "once"
+	status := req.Status
+	if status == "" {
+		status = "pending"
 	}
 
 	task := &model.AirdropTask{
-		AirdropID:   uint(airdropID),
-		Description: req.Description,
-		Frequency:   freq,
+		AirdropID:  uint(airdropID),
+		Name:       req.Name,
+		CategoryID: req.CategoryID,
+		Status:     status,
+	}
+
+	if req.Date != "" {
+		task.Date = parseDate(req.Date)
 	}
 
 	if err := h.Repo.Create(task); err != nil {
@@ -98,16 +102,18 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, task)
 }
 
-// Complete godoc
-// @Summary      Toggle task completion
-// @Description  Mark task as completed or uncompleted
+// Update godoc
+// @Summary      Update task
+// @Description  Update task name, category, status, date
 // @Tags         AirdropTasks
+// @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        id path int true "Task ID"
+// @Param        id   path      int                     true  "Task ID"
+// @Param        body body      CreateAirdropTaskRequest true  "Updated data"
 // @Success      200  {object}  model.AirdropTask
-// @Router       /api/airdrop-tasks/{id}/complete [put]
-func (h *AirdropTaskHandler) Complete(c *gin.Context) {
+// @Router       /api/airdrop-tasks/{id} [put]
+func (h *AirdropTaskHandler) Update(c *gin.Context) {
 	id, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	task, err := h.Repo.FindByID(uint(id))
@@ -116,14 +122,29 @@ func (h *AirdropTaskHandler) Complete(c *gin.Context) {
 		return
 	}
 
-	newStatus := !task.IsCompleted
-	if err := h.Repo.ToggleComplete(uint(id), newStatus); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	var req CreateAirdropTaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Refresh
-	task, _ = h.Repo.FindByID(uint(id))
+	if req.Name != "" {
+		task.Name = req.Name
+	}
+	if req.CategoryID != nil {
+		task.CategoryID = req.CategoryID
+	}
+	if req.Status != "" {
+		task.Status = req.Status
+	}
+	if req.Date != "" {
+		task.Date = parseDate(req.Date)
+	}
+
+	if err := h.Repo.Update(task); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, task)
 }
 
@@ -144,35 +165,6 @@ func (h *AirdropTaskHandler) Delete(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Deleted"})
-}
-
-// Reorder godoc
-// @Summary      Reorder tasks
-// @Description  Update sort order of tasks
-// @Tags         AirdropTasks
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id path int true "Airdrop ID"
-// @Param        body body []uint true "Task IDs in order"
-// @Success      200  {object}  map[string]string
-// @Router       /api/airdrops/{airdrop_id}/tasks/reorder [put]
-func (h *AirdropTaskHandler) Reorder(c *gin.Context) {
-	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-
-	var taskIDs []uint
-	if err := c.ShouldBindJSON(&taskIDs); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	for i, taskID := range taskIDs {
-		h.Repo.DB.Model(&model.AirdropTask{}).
-			Where("id = ? AND airdrop_id = ?", taskID, uint(airdropID)).
-			Update("sort_order", i)
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Reordered"})
 }
 
 // BulkCreate godoc
@@ -204,14 +196,18 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 
 	var created []model.AirdropTask
 	for _, req := range reqs {
-		freq := req.Frequency
-		if freq == "" {
-			freq = "once"
+		status := req.Status
+		if status == "" {
+			status = "pending"
 		}
 		task := &model.AirdropTask{
-			AirdropID:   uint(airdropID),
-			Description: req.Description,
-			Frequency:   freq,
+			AirdropID:  uint(airdropID),
+			Name:       req.Name,
+			CategoryID: req.CategoryID,
+			Status:     status,
+		}
+		if req.Date != "" {
+			task.Date = parseDate(req.Date)
 		}
 		if err := h.Repo.Create(task); err == nil {
 			created = append(created, *task)
@@ -221,27 +217,31 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 	c.JSON(http.StatusCreated, created)
 }
 
-// ResetAll godoc
-// @Summary      Reset all tasks
-// @Description  Mark all tasks as uncompleted
+// Reorder godoc
+// @Summary      Reorder tasks
+// @Description  Update sort order of tasks
 // @Tags         AirdropTasks
+// @Accept       json
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id path int true "Airdrop ID"
+// @Param        body body []uint true "Task IDs in order"
 // @Success      200  {object}  map[string]string
-// @Router       /api/airdrops/{airdrop_id}/tasks/reset [put]
-func (h *AirdropTaskHandler) ResetAll(c *gin.Context) {
+// @Router       /api/airdrops/{airdrop_id}/tasks/reorder [put]
+func (h *AirdropTaskHandler) Reorder(c *gin.Context) {
 	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	h.Repo.DB.Model(&model.AirdropTask{}).
-		Where("airdrop_id = ?", uint(airdropID)).
-		Updates(map[string]interface{}{
-			"is_completed": false,
-			"completed_at": nil,
-		})
+	var taskIDs []uint
+	if err := c.ShouldBindJSON(&taskIDs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "All tasks reset"})
+	for i, taskID := range taskIDs {
+		h.Repo.DB.Model(&model.AirdropTask{}).
+			Where("id = ? AND airdrop_id = ?", taskID, uint(airdropID)).
+			Update("sort_order", i)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Reordered"})
 }
-
-// unused import guard
-var _ = time.Now

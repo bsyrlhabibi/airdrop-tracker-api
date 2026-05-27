@@ -11,10 +11,10 @@ import (
 )
 
 type AccountHandler struct {
-	Repo       *repository.AccountRepo
+	Repo        *repository.AccountRepo
 	AirdropRepo *repository.AirdropRepo
-	AARepo     *repository.AccountAirdropRepo
-	DB         *gorm.DB
+	AARepo      *repository.AccountAirdropRepo
+	DB          *gorm.DB
 }
 
 func NewAccountHandler(repo *repository.AccountRepo, airdropRepo *repository.AirdropRepo, aaRepo *repository.AccountAirdropRepo, db *gorm.DB) *AccountHandler {
@@ -36,11 +36,6 @@ type UpdateAccountRequest struct {
 type AssignAirdropRequest struct {
 	AirdropID uint   `json:"airdrop_id" binding:"required" example:"1"`
 	Notes     string `json:"notes" example:"Focus on bridging"`
-}
-
-type CustomTaskRequest struct {
-	Description string `json:"description" example:"Bridge 0.1 ETH"`
-	Frequency   string `json:"frequency" example:"weekly"`
 }
 
 type CloneAccountRequest struct {
@@ -208,7 +203,7 @@ func (h *AccountHandler) Delete(c *gin.Context) {
 
 // AssignAirdrop godoc
 // @Summary      Assign airdrop to account
-// @Description  Assign a global airdrop to an account with optional task template
+// @Description  Assign a global airdrop to an account and sync global tasks
 // @Tags         Accounts
 // @Accept       json
 // @Produce      json
@@ -224,7 +219,6 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	// Verify account belongs to user
 	_, err := h.Repo.FindByID(uint(accountID), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
@@ -237,7 +231,6 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 		return
 	}
 
-	// Verify airdrop exists and belongs to user
 	_, err = h.AirdropRepo.FindByID(req.AirdropID, userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Airdrop not found"})
@@ -251,8 +244,10 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 	var tasks []model.Task
 	for _, gt := range globalTasks {
 		tasks = append(tasks, model.Task{
-			Description: gt.Description,
-			Frequency:   gt.Frequency,
+			Name:       gt.Name,
+			CategoryID: gt.CategoryID,
+			Status:     "pending",
+			Date:       gt.Date,
 		})
 	}
 
@@ -280,7 +275,6 @@ func (h *AccountHandler) GetAccountAirdrops(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
 	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	// Verify account belongs to user
 	_, err := h.Repo.FindByID(uint(accountID), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
@@ -313,7 +307,6 @@ func (h *AccountHandler) RemoveAirdrop(c *gin.Context) {
 	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
 
-	// Verify account belongs to user
 	_, err := h.Repo.FindByID(uint(accountID), userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
@@ -401,22 +394,22 @@ func (h *AccountHandler) GetComparison(c *gin.Context) {
 			}
 			for _, t := range aa.Tasks {
 				totalTasks++
-				if t.IsCompleted {
+				if t.Status == "finish" {
 					completedTasks++
 				}
 			}
 		}
 
 		rows = append(rows, ComparisonRow{
-			AccountID:        acc.ID,
-			AccountName:      acc.Name,
-			AccountColor:     acc.Color,
-			TotalAirdrops:    totalAirdrops,
+			AccountID:         acc.ID,
+			AccountName:       acc.Name,
+			AccountColor:      acc.Color,
+			TotalAirdrops:     totalAirdrops,
 			CompletedAirdrops: completedAirdrops,
-			TotalTasks:       totalTasks,
-			CompletedTasks:   completedTasks,
-			PendingTasks:     totalTasks - completedTasks,
-			WalletCount:      int64(len(acc.Wallets)),
+			TotalTasks:        totalTasks,
+			CompletedTasks:    completedTasks,
+			PendingTasks:      totalTasks - completedTasks,
+			WalletCount:       int64(len(acc.Wallets)),
 		})
 	}
 
@@ -433,42 +426,4 @@ type ComparisonRow struct {
 	CompletedTasks    int64  `json:"completed_tasks"`
 	PendingTasks      int64  `json:"pending_tasks"`
 	WalletCount       int64  `json:"wallet_count"`
-}
-
-// buildTasksFromTemplate creates tasks based on a template name.
-func buildTasksFromTemplate(template string, customTasks []CustomTaskRequest) []model.Task {
-	switch template {
-	case "basic":
-		return []model.Task{
-			{Description: "Bridge", Frequency: "once"},
-			{Description: "Swap", Frequency: "once"},
-		}
-	case "full":
-		return []model.Task{
-			{Description: "Bridge", Frequency: "once"},
-			{Description: "Swap", Frequency: "once"},
-			{Description: "Stake", Frequency: "once"},
-			{Description: "LP", Frequency: "once"},
-			{Description: "Vote", Frequency: "once"},
-		}
-	case "custom":
-		var tasks []model.Task
-		for _, ct := range customTasks {
-			freq := ct.Frequency
-			if freq == "" {
-				freq = "once"
-			}
-			tasks = append(tasks, model.Task{
-				Description: ct.Description,
-				Frequency:   freq,
-			})
-		}
-		return tasks
-	default:
-		// Default to basic
-		return []model.Task{
-			{Description: "Bridge", Frequency: "once"},
-			{Description: "Swap", Frequency: "once"},
-		}
-	}
 }

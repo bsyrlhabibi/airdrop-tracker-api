@@ -39,6 +39,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	aaRepo := repository.NewAccountAirdropRepo(db)
 	taskRepo := repository.NewTaskRepo(db)
 	walletRepo := repository.NewWalletRepo(db)
+	categoryRepo := repository.NewCategoryRepo(db)
 
 	// Handlers
 	authH := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
@@ -48,6 +49,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	taskH := handler.NewTaskHandler(taskRepo, aaRepo)
 	walletH := handler.NewWalletHandler(walletRepo)
 	dashboardH := handler.NewDashboardHandler(db)
+	categoryH := handler.NewCategoryHandler(categoryRepo)
 
 	api := r.Group("/api")
 
@@ -58,6 +60,12 @@ func Setup(cfg *config.Config) *gin.Engine {
 	// Protected
 	auth := api.Group("/")
 	auth.Use(middleware.Auth(cfg.JWTSecret))
+
+	// Categories
+	auth.GET("/categories", categoryH.List)
+	auth.POST("/categories", categoryH.Create)
+	auth.PUT("/categories/:id", categoryH.Update)
+	auth.DELETE("/categories/:id", categoryH.Delete)
 
 	// Accounts (Sybil)
 	auth.GET("/accounts", accountH.List)
@@ -81,15 +89,14 @@ func Setup(cfg *config.Config) *gin.Engine {
 	auth.PUT("/airdrops/:id", airdropH.Update)
 	auth.DELETE("/airdrops/:id", airdropH.Delete)
 
-	// Airdrop Tasks (checklist per airdrop)
+	// Airdrop Tasks (global tasks per airdrop)
 	airdropTaskRepo := repository.NewAirdropTaskRepo(db)
 	airdropTaskH := handler.NewAirdropTaskHandler(airdropTaskRepo, airdropRepo)
 	auth.GET("/airdrops/:id/tasks", airdropTaskH.List)
 	auth.POST("/airdrops/:id/tasks", airdropTaskH.Create)
 	auth.POST("/airdrops/:id/tasks/bulk", airdropTaskH.BulkCreate)
 	auth.PUT("/airdrops/:id/tasks/reorder", airdropTaskH.Reorder)
-	auth.PUT("/airdrops/:id/tasks/reset", airdropTaskH.ResetAll)
-	auth.PUT("/airdrop-tasks/:id/complete", airdropTaskH.Complete)
+	auth.PUT("/airdrop-tasks/:id", airdropTaskH.Update)
 	auth.DELETE("/airdrop-tasks/:id", airdropTaskH.Delete)
 
 	// AccountAirdrops (direct operations)
@@ -99,8 +106,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	// Tasks (per account-airdrop)
 	auth.GET("/account-airdrops/:id/tasks", taskH.List)
 	auth.POST("/account-airdrops/:id/tasks", taskH.Create)
-	auth.PUT("/tasks/:id/complete", taskH.Complete)
-	auth.PUT("/tasks/:id/reset", taskH.Reset)
+	auth.PUT("/tasks/:id", taskH.Update)
 	auth.DELETE("/tasks/:id", taskH.Delete)
 
 	// Wallets

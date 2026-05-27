@@ -19,7 +19,7 @@ func (r *AccountAirdropRepo) Create(aa *model.AccountAirdrop) error {
 
 func (r *AccountAirdropRepo) FindByID(id uint) (*model.AccountAirdrop, error) {
 	var aa model.AccountAirdrop
-	err := r.DB.Preload("Airdrop").Preload("Tasks").First(&aa, id).Error
+	err := r.DB.Preload("Airdrop").Preload("Tasks").Preload("Tasks.Category").First(&aa, id).Error
 	return &aa, err
 }
 
@@ -28,6 +28,7 @@ func (r *AccountAirdropRepo) FindByAccount(accountID uint) ([]model.AccountAirdr
 	err := r.DB.Where("account_id = ?", accountID).
 		Preload("Airdrop").
 		Preload("Tasks").
+		Preload("Tasks.Category").
 		Order("created_at DESC").
 		Find(&aas).Error
 	return aas, err
@@ -45,31 +46,15 @@ func (r *AccountAirdropRepo) Update(aa *model.AccountAirdrop) error {
 }
 
 func (r *AccountAirdropRepo) Delete(id uint) error {
-	// Delete tasks first
 	r.DB.Where("account_airdrop_id = ?", id).Delete(&model.Task{})
 	return r.DB.Delete(&model.AccountAirdrop{}, id).Error
 }
 
-func (r *AccountAirdropRepo) GetTasks(accountAirdropID uint) ([]model.Task, error) {
-	var tasks []model.Task
-	err := r.DB.Where("account_airdrop_id = ?", accountAirdropID).
-		Order("created_at DESC").
-		Find(&tasks).Error
-	return tasks, err
-}
-
-func (r *AccountAirdropRepo) AddTask(accountAirdropID uint, task *model.Task) error {
-	task.AccountAirdropID = accountAirdropID
-	return r.DB.Create(task).Error
-}
-
-// AssignAirdrop creates an AccountAirdrop link and optionally creates tasks from a template.
 func (r *AccountAirdropRepo) AssignAirdrop(accountID, airdropID uint, status, notes string, tasks []model.Task) (*model.AccountAirdrop, error) {
-	// Check if already assigned
 	var existing model.AccountAirdrop
 	err := r.DB.Where("account_id = ? AND airdrop_id = ?", accountID, airdropID).First(&existing).Error
 	if err == nil {
-		return &existing, nil // Already assigned
+		return &existing, nil
 	}
 
 	aa := &model.AccountAirdrop{
@@ -86,19 +71,15 @@ func (r *AccountAirdropRepo) AssignAirdrop(accountID, airdropID uint, status, no
 		return nil, err
 	}
 
-	// Create tasks if provided
 	for _, t := range tasks {
 		t.AccountAirdropID = aa.ID
 		r.DB.Create(&t)
 	}
 
-	// Reload with preloads
-	r.DB.Preload("Airdrop").Preload("Tasks").First(aa, aa.ID)
-
+	r.DB.Preload("Airdrop").Preload("Tasks").Preload("Tasks.Category").First(aa, aa.ID)
 	return aa, nil
 }
 
-// RemoveAirdrop removes the account-airdrop link and its tasks.
 func (r *AccountAirdropRepo) RemoveAirdrop(accountID, airdropID uint) error {
 	var aa model.AccountAirdrop
 	if err := r.DB.Where("account_id = ? AND airdrop_id = ?", accountID, airdropID).First(&aa).Error; err != nil {

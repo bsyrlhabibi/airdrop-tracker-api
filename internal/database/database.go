@@ -24,6 +24,7 @@ func Migrate() {
 	if err := DB.AutoMigrate(
 		&model.User{},
 		&model.Account{},
+		&model.Category{},
 		&model.Airdrop{},
 		&model.AirdropTask{},
 		&model.AccountAirdrop{},
@@ -34,23 +35,21 @@ func Migrate() {
 	}
 	log.Println("Migration done")
 
-	// Fix legacy schema: remove account_id column from airdrops if it exists
-	// SQLite doesn't reliably support DROP COLUMN on all versions
-	// Use table recreation approach which works on ALL SQLite versions
+	// Fix legacy schema issues
 	fixLegacyAirdropSchema()
+	fixLegacyAirdropTaskSchema()
+	fixLegacyTaskSchema()
 }
 
 func fixLegacyAirdropSchema() {
-	// Check if account_id column exists
 	var count int
 	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrops') WHERE name = 'account_id'").Scan(&count)
 	if count == 0 {
-		return // already clean
+		return
 	}
 
 	log.Println("Fixing legacy airdrops schema: removing account_id column...")
 
-	// Step 1: Create new table with correct schema
 	DB.Exec(`CREATE TABLE IF NOT EXISTS airdrops_new (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		user_id INTEGER NOT NULL,
@@ -66,13 +65,88 @@ func fixLegacyAirdropSchema() {
 		updated_at DATETIME
 	)`)
 
-	// Step 2: Copy data (only columns that exist in new schema)
 	DB.Exec(`INSERT INTO airdrops_new (id, user_id, name, chain, category, priority, status, url, deadline, notes, created_at, updated_at)
 		SELECT id, user_id, name, chain, category, priority, status, url, deadline, notes, created_at, updated_at FROM airdrops`)
 
-	// Step 3: Drop old table and rename
 	DB.Exec(`DROP TABLE IF EXISTS airdrops`)
 	DB.Exec(`ALTER TABLE airdrops_new RENAME TO airdrops`)
 
 	log.Println("Legacy airdrops schema fixed successfully")
+}
+
+func fixLegacyAirdropTaskSchema() {
+	// Check if old columns exist (description, is_completed, completed_at, frequency)
+	var hasDesc, hasCompleted int
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrop_tasks') WHERE name = 'description'").Scan(&hasDesc)
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrop_tasks') WHERE name = 'is_completed'").Scan(&hasCompleted)
+
+	if hasDesc == 0 && hasCompleted == 0 {
+		return // already new schema
+	}
+
+	log.Println("Fixing legacy airdrop_tasks schema...")
+
+	DB.Exec(`CREATE TABLE IF NOT EXISTS airdrop_tasks_new (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		airdrop_id INTEGER NOT NULL,
+		category_id INTEGER,
+		name TEXT NOT NULL DEFAULT '',
+		status TEXT DEFAULT 'pending',
+		date DATETIME,
+		sort_order INTEGER DEFAULT 0,
+		created_at DATETIME,
+		updated_at DATETIME
+	)`)
+
+	// Migrate data: description -> name, is_completed -> status
+	DB.Exec(`INSERT INTO airdrop_tasks_new (id, airdrop_id, name, status, sort_order, created_at, updated_at)
+		SELECT id, airdrop_id,
+			COALESCE(description, ''),
+			CASE WHEN is_completed = 1 THEN 'finish' ELSE 'pending' END,
+			sort_order, created_at, updated_at
+		FROM airdrop_tasks`)
+
+	DB.Exec(`DROP TABLE IF EXISTS airdrop_tasks`)
+	DB.Exec(`ALTER TABLE airdrop_tasks_new RENAME TO airdrop_tasks`)
+
+	log.Println("Legacy airdrop_tasks schema fixed successfully")
+}
+
+func fixLegacyTaskSchema() {
+	// Check if old columns exist (description, is_completed, completed_at, frequency)
+	var hasDesc, hasCompleted int
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name = 'description'").Scan(&hasDesc)
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('tasks') WHERE name = 'is_completed'").Scan(&hasCompleted)
+
+	if hasDesc == 0 && hasCompleted == 0 {
+		return // already new schema
+	}
+
+	log.Println("Fixing legacy tasks schema...")
+
+	DB.Exec(`CREATE TABLE IF NOT EXISTS tasks_new (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		account_airdrop_id INTEGER NOT NULL,
+		category_id INTEGER,
+		name TEXT NOT NULL DEFAULT '',
+		status TEXT DEFAULT 'pending',
+		date DATETIME,
+		gas_spent REAL DEFAULT 0,
+		tx_hash TEXT,
+		created_at DATETIME,
+		updated_at DATETIME
+	)`)
+
+	// Migrate data: description -> name, is_completed -> status
+	DB.Exec(`INSERT INTO tasks_new (id, account_airdrop_id, name, status, gas_spent, tx_hash, created_at)
+		SELECT id, account_airdrop_id,
+			COALESCE(description, ''),
+			CASE WHEN is_completed = 1 THEN 'finish' ELSE 'pending' END,
+			gas_spent, tx_hash, created_at
+		FROM tasks`)
+
+	DB.Exec(`DROP TABLE IF EXISTS tasks`)
+	DB.Exec(`ALTER TABLE tasks_new RENAME TO tasks`)
+
+	log.Println("Legacy tasks schema fixed successfully")
 }
