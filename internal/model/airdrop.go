@@ -13,6 +13,8 @@ type Airdrop struct {
 	Priority  string     `json:"priority" gorm:"default:medium"`
 	Status    string     `json:"status" gorm:"default:active"`
 	URL       string     `json:"url"`
+	DateStart *time.Time `json:"date_start"`
+	DateEnd   *time.Time `json:"date_end"`
 	Deadline  *time.Time `json:"deadline"`
 	Notes     string     `json:"notes"`
 	CreatedAt time.Time  `json:"created_at"`

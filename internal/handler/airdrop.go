@@ -18,12 +18,14 @@ func NewAirdropHandler(repo *repository.AirdropRepo) *AirdropHandler {
 }
 
 type CreateAirdropRequest struct {
-	Name     string `json:"name" example:"zkSync"`
-	Chain    string `json:"chain" example:"Ethereum"`
-	Category string `json:"category" example:"rumored"`
-	Priority string `json:"priority" example:"high"`
-	URL      string `json:"url" example:"https://zksync.io"`
-	Notes    string `json:"notes" example:"Bridge weekly"`
+	Name      string `json:"name" example:"zkSync"`
+	Chain     string `json:"chain" example:"Ethereum"`
+	Category  string `json:"category" example:"rumored"`
+	Priority  string `json:"priority" example:"high"`
+	URL       string `json:"url" example:"https://zksync.io"`
+	DateStart string `json:"date_start" example:"2025-01-01"`
+	DateEnd   string `json:"date_end" example:"2025-12-31"`
+	Notes     string `json:"notes" example:"Bridge weekly"`
 }
 
 // List Airdrops godoc
@@ -67,13 +69,15 @@ func (h *AirdropHandler) Create(c *gin.Context) {
 	}
 
 	airdrop := &model.Airdrop{
-		UserID:   userID,
-		Name:     req.Name,
-		Chain:    req.Chain,
-		Category: req.Category,
-		Priority: req.Priority,
-		URL:      req.URL,
-		Notes:    req.Notes,
+		UserID:    userID,
+		Name:      req.Name,
+		Chain:     req.Chain,
+		Category:  req.Category,
+		Priority:  req.Priority,
+		URL:       req.URL,
+		DateStart: parseDate(req.DateStart),
+		DateEnd:   parseDate(req.DateEnd),
+		Notes:     req.Notes,
 	}
 
 	if err := h.Repo.Create(airdrop); err != nil {
@@ -114,7 +118,7 @@ func (h *AirdropHandler) Get(c *gin.Context) {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      int               true  "Airdrop ID"
-// @Param        body body      CreateAirdropRequest true  "Updated data"
+// @Param        body body      model.Airdrop     true  "Updated data"
 // @Success      200  {object}  model.Airdrop
 // @Failure      400  {object}  map[string]string
 // @Failure      401  {object}  map[string]string
