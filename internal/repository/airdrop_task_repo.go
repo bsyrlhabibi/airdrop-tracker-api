@@ -34,5 +34,23 @@ func (r *AirdropTaskRepo) Update(task *model.AirdropTask) error {
 }
 
 func (r *AirdropTaskRepo) Delete(id uint) error {
-	return r.DB.Delete(&model.AirdropTask{}, id).Error
+	// First, find the task to get its airdrop_id and name
+	var task model.AirdropTask
+	if err := r.DB.First(&task, id).Error; err != nil {
+		return err
+	}
+
+	return r.DB.Transaction(func(tx *gorm.DB) error {
+		// Find all AccountAirdrop IDs for this airdrop
+		var aaIDs []uint
+		tx.Model(&model.AccountAirdrop{}).Where("airdrop_id = ?", task.AirdropID).Pluck("id", &aaIDs)
+
+		// Delete all daily Tasks that match (same name + same account-airdrops)
+		if len(aaIDs) > 0 {
+			tx.Where("account_airdrop_id IN ? AND name = ?", aaIDs, task.Name).Delete(&model.Task{})
+		}
+
+		// Delete the template task itself
+		return tx.Delete(&model.AirdropTask{}, id).Error
+	})
 }
