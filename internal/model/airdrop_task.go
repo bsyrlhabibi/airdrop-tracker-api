@@ -14,8 +14,6 @@ type AirdropTask struct {
 	Status      string     `json:"status" gorm:"default:pending"` // pending, ongoing, finish, missed
 	StartDate   *time.Time `json:"start_date"`
 	EndDate     *time.Time `json:"end_date"`
-	GasSpent    float64    `json:"gas_spent" gorm:"default:0"`
-	TxHash      string     `json:"tx_hash"`
 	SortOrder   int        `json:"sort_order" gorm:"default:0"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
