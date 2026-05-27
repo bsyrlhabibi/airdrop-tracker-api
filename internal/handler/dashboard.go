@@ -17,16 +17,19 @@ func NewDashboardHandler(db *gorm.DB) *DashboardHandler {
 }
 
 type DashboardSummary struct {
-	TotalAirdrops  int64          `json:"total_airdrops"`
-	ActiveAirdrops int64          `json:"active_airdrops"`
-	TotalTasks     int64          `json:"total_tasks"`
-	CompletedTasks int64          `json:"completed_tasks"`
-	PendingTasks   int64          `json:"pending_tasks"`
-	OngoingTasks   int64          `json:"ongoing_tasks"`
-	MissedTasks    int64          `json:"missed_tasks"`
-	TotalWallets   int64          `json:"total_wallets"`
-	TotalAccounts  int64          `json:"total_accounts"`
-	Accounts       []AccountStats `json:"accounts,omitempty"`
+	TotalAirdrops    int64          `json:"total_airdrops"`
+	ActiveAirdrops   int64          `json:"active_airdrops"`
+	UpcomingAirdrops int64          `json:"upcoming_airdrops"`
+	EndedAirdrops    int64          `json:"ended_airdrops"`
+	MissedAirdrops   int64          `json:"missed_airdrops"`
+	TotalTasks       int64          `json:"total_tasks"`
+	CompletedTasks   int64          `json:"completed_tasks"`
+	PendingTasks     int64          `json:"pending_tasks"`
+	OngoingTasks     int64          `json:"ongoing_tasks"`
+	MissedTasks      int64          `json:"missed_tasks"`
+	TotalWallets     int64          `json:"total_wallets"`
+	TotalAccounts    int64          `json:"total_accounts"`
+	Accounts         []AccountStats `json:"accounts,omitempty"`
 }
 
 type AccountStats struct {
@@ -60,6 +63,15 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 
 	var activeAirdrops int64
 	h.DB.Model(&model.Airdrop{}).Where("user_id = ? AND status = ?", userID, "active").Count(&activeAirdrops)
+
+	var upcomingAirdrops int64
+	h.DB.Model(&model.Airdrop{}).Where("user_id = ? AND status = ?", userID, "upcoming").Count(&upcomingAirdrops)
+
+	var endedAirdrops int64
+	h.DB.Model(&model.Airdrop{}).Where("user_id = ? AND status = ?", userID, "end").Count(&endedAirdrops)
+
+	var missedAirdrops int64
+	h.DB.Model(&model.Airdrop{}).Where("user_id = ? AND status = ?", userID, "missed").Count(&missedAirdrops)
 
 	var totalTasks int64
 	h.DB.Model(&model.Task{}).
@@ -150,15 +162,18 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, DashboardSummary{
-		TotalAirdrops:  totalAirdrops,
-		ActiveAirdrops: activeAirdrops,
-		TotalTasks:     totalTasks,
-		CompletedTasks: completedTasks,
-		PendingTasks:   totalTasks - completedTasks - ongoingTasks - missedTasks,
-		OngoingTasks:   ongoingTasks,
-		MissedTasks:    missedTasks,
-		TotalWallets:   totalWallets,
-		TotalAccounts:  totalAccounts,
-		Accounts:       accountStats,
+		TotalAirdrops:    totalAirdrops,
+		ActiveAirdrops:   activeAirdrops,
+		UpcomingAirdrops: upcomingAirdrops,
+		EndedAirdrops:    endedAirdrops,
+		MissedAirdrops:   missedAirdrops,
+		TotalTasks:       totalTasks,
+		CompletedTasks:   completedTasks,
+		PendingTasks:     totalTasks - completedTasks - ongoingTasks - missedTasks,
+		OngoingTasks:     ongoingTasks,
+		MissedTasks:      missedTasks,
+		TotalWallets:     totalWallets,
+		TotalAccounts:    totalAccounts,
+		Accounts:         accountStats,
 	})
 }
