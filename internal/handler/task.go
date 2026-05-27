@@ -27,6 +27,14 @@ type CreateTaskRequest struct {
 	Date      string `json:"date" example:"2025-01-15"`
 }
 
+type UpdateTaskRequest struct {
+	Name      string `json:"name"`
+	CategoryID *uint `json:"category_id"`
+	Status    string `json:"status"`
+	Frequency string `json:"frequency"`
+	Date      string `json:"date"`
+}
+
 // List Tasks godoc
 // @Summary      List tasks for account-airdrop
 // @Description  Get all tasks for a specific account-airdrop
@@ -119,7 +127,7 @@ func (h *TaskHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var req CreateTaskRequest
+	var req UpdateTaskRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
