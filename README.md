@@ -69,15 +69,6 @@ airdrop-tracker-api/
 │   │   └── wallet.go                   #   Wallet (address per chain)
 │   ├── repository/                     # Database queries (GORM)
 │   ├── handler/                        # HTTP handlers
-│   │   ├── auth.go                     #   Register + Login
-│   │   ├── account.go                  #   Account CRUD + assign
-│   │   ├── airdrop.go                  #   Airdrop CRUD
-│   │   ├── airdrop_task.go             #   AirdropTask CRUD
-│   │   ├── task.go                     #   Task CRUD + today/by-date
-│   │   ├── category.go                 #   Category CRUD
-│   │   ├── wallet.go                   #   Wallet CRUD
-│   │   ├── dashboard.go                #   Stats summary
-│   │   └── export.go                   #   Excel export (5 sheets)
 │   ├── middleware/auth.go              # JWT middleware
 │   └── router/router.go               # Route definitions
 ├── docs/                               # Swagger generated docs
@@ -143,15 +134,15 @@ make run
 
 #### Accounts
 
-| Method | Path                           | Description               |
-|--------|--------------------------------|---------------------------|
-| GET    | `/api/accounts`                | List all accounts         |
-| POST   | `/api/accounts`                | Create account            |
-| GET    | `/api/accounts/:id`            | Get account detail        |
-| PUT    | `/api/accounts/:id`            | Update account            |
-| DELETE | `/api/accounts/:id`            | Delete account            |
-| POST   | `/api/accounts/:id/airdrops`   | Assign airdrop to account |
-| DELETE | `/api/accounts/:id/airdrops/:airdrop_id` | Remove airdrop  |
+| Method | Path                                       | Description               |
+|--------|--------------------------------------------|---------------------------|
+| GET    | `/api/accounts`                            | List all accounts         |
+| POST   | `/api/accounts`                            | Create account            |
+| GET    | `/api/accounts/:id`                        | Get account detail        |
+| PUT    | `/api/accounts/:id`                        | Update account            |
+| DELETE | `/api/accounts/:id`                        | Delete account            |
+| POST   | `/api/accounts/:id/airdrops`               | Assign airdrop to account |
+| DELETE | `/api/accounts/:id/airdrops/:airdrop_id`   | Remove airdrop            |
 
 #### Airdrops (Global Catalog)
 
@@ -165,12 +156,12 @@ make run
 
 #### Airdrop Tasks (Templates)
 
-| Method | Path                          | Description          |
-|--------|-------------------------------|----------------------|
-| GET    | `/api/airdrops/:id/tasks`     | List template tasks  |
-| POST   | `/api/airdrops/:id/tasks`     | Create template task |
-| PUT    | `/api/airdrop-tasks/:id`      | Update template task |
-| DELETE | `/api/airdrop-tasks/:id`      | Delete template task |
+| Method | Path                      | Description                     |
+|--------|---------------------------|---------------------------------|
+| GET    | `/api/airdrops/:id/tasks` | List template tasks             |
+| POST   | `/api/airdrops/:id/tasks` | Create template task            |
+| PUT    | `/api/airdrop-tasks/:id`  | Update template task            |
+| DELETE | `/api/airdrop-tasks/:id`  | Delete template + cascade daily |
 
 #### Account Tasks (Daily Tracking)
 
@@ -184,26 +175,26 @@ make run
 
 #### Categories
 
-| Method | Path                 | Description      |
-|--------|----------------------|------------------|
-| GET    | `/api/categories`    | List categories  |
-| POST   | `/api/categories`    | Create category  |
-| PUT    | `/api/categories/:id`| Update category  |
-| DELETE | `/api/categories/:id`| Delete category  |
+| Method | Path                  | Description      |
+|--------|-----------------------|------------------|
+| GET    | `/api/categories`     | List categories  |
+| POST   | `/api/categories`     | Create category  |
+| PUT    | `/api/categories/:id` | Update category  |
+| DELETE | `/api/categories/:id` | Delete category  |
 
 #### Wallets
 
-| Method | Path              | Description    |
-|--------|-------------------|----------------|
-| GET    | `/api/wallets`    | List wallets   |
-| POST   | `/api/wallets`    | Add wallet     |
-| DELETE | `/api/wallets/:id`| Delete wallet  |
+| Method | Path               | Description    |
+|--------|--------------------|----------------|
+| GET    | `/api/wallets`     | List wallets   |
+| POST   | `/api/wallets`     | Add wallet     |
+| DELETE | `/api/wallets/:id` | Delete wallet  |
 
 #### Dashboard & Export
 
-| Method | Path                | Description              |
-|--------|---------------------|--------------------------|
-| GET    | `/api/dashboard`    | Stats summary            |
+| Method | Path                | Description                |
+|--------|---------------------|----------------------------|
+| GET    | `/api/dashboard`    | Stats summary              |
 | GET    | `/api/export/excel` | Export to Excel (5 sheets) |
 
 ---
@@ -221,13 +212,13 @@ make run
 ## 📦 Makefile Commands
 
 ```bash
-make run        # Jalankan server
-make build      # Build binary → bin/server
-make swag       # Regenerate Swagger docs
-make swag-install # Install swag CLI
-make test       # Run tests
-make clean      # Hapus database & binary
-make deploy     # Deploy ke Fly.io
+make run            # Jalankan server
+make build          # Build binary → bin/server
+make swag           # Regenerate Swagger docs
+make swag-install   # Install swag CLI
+make test           # Run tests
+make clean          # Hapus database & binary
+make deploy         # Deploy ke Fly.io
 ```
 
 ---
