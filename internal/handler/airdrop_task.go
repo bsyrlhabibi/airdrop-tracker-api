@@ -19,16 +19,15 @@ func NewAirdropTaskHandler(repo *repository.AirdropTaskRepo, airdropRepo *reposi
 }
 
 type CreateAirdropTaskRequest struct {
-	Name       string `json:"name" binding:"required"`
-	CategoryID *uint  `json:"category_id"`
-	Status     string `json:"status"`
-	Frequency  string `json:"frequency"`
-	Date       string `json:"date"` // ISO date string
+	Name      string `json:"name" binding:"required"`
+	CategoryID *uint `json:"category_id"`
+	Status    string `json:"status"`
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
 }
 
 // List godoc
 // @Summary      List tasks for an airdrop
-// @Description  Get all tasks for a specific airdrop
 // @Tags         AirdropTasks
 // @Produce      json
 // @Security     BearerAuth
@@ -55,7 +54,6 @@ func (h *AirdropTaskHandler) List(c *gin.Context) {
 
 // Create godoc
 // @Summary      Add task to airdrop
-// @Description  Create a new task for an airdrop
 // @Tags         AirdropTasks
 // @Accept       json
 // @Produce      json
@@ -85,21 +83,13 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 		status = "pending"
 	}
 
-	freq := req.Frequency
-	if freq == "" {
-		freq = "once"
-	}
-
 	task := &model.AirdropTask{
 		AirdropID:  uint(airdropID),
 		Name:       req.Name,
 		CategoryID: req.CategoryID,
 		Status:     status,
-		Frequency:  freq,
-	}
-
-	if req.Date != "" {
-		task.Date = parseDate(req.Date)
+		StartDate:  parseDate(req.StartDate),
+		EndDate:    parseDate(req.EndDate),
 	}
 
 	if err := h.Repo.Create(task); err != nil {
@@ -111,7 +101,6 @@ func (h *AirdropTaskHandler) Create(c *gin.Context) {
 
 // Update godoc
 // @Summary      Update task
-// @Description  Update task name, category, status, date
 // @Tags         AirdropTasks
 // @Accept       json
 // @Produce      json
@@ -144,11 +133,11 @@ func (h *AirdropTaskHandler) Update(c *gin.Context) {
 	if req.Status != "" {
 		task.Status = req.Status
 	}
-	if req.Frequency != "" {
-		task.Frequency = req.Frequency
+	if req.StartDate != "" {
+		task.StartDate = parseDate(req.StartDate)
 	}
-	if req.Date != "" {
-		task.Date = parseDate(req.Date)
+	if req.EndDate != "" {
+		task.EndDate = parseDate(req.EndDate)
 	}
 
 	if err := h.Repo.Update(task); err != nil {
@@ -160,7 +149,6 @@ func (h *AirdropTaskHandler) Update(c *gin.Context) {
 
 // Delete godoc
 // @Summary      Delete task
-// @Description  Remove a task from an airdrop
 // @Tags         AirdropTasks
 // @Produce      json
 // @Security     BearerAuth
@@ -179,7 +167,6 @@ func (h *AirdropTaskHandler) Delete(c *gin.Context) {
 
 // BulkCreate godoc
 // @Summary      Bulk add tasks
-// @Description  Create multiple tasks at once
 // @Tags         AirdropTasks
 // @Accept       json
 // @Produce      json
@@ -210,19 +197,13 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 		if status == "" {
 			status = "pending"
 		}
-		freq := req.Frequency
-		if freq == "" {
-			freq = "once"
-		}
 		task := &model.AirdropTask{
 			AirdropID:  uint(airdropID),
 			Name:       req.Name,
 			CategoryID: req.CategoryID,
 			Status:     status,
-			Frequency:  freq,
-		}
-		if req.Date != "" {
-			task.Date = parseDate(req.Date)
+			StartDate:  parseDate(req.StartDate),
+			EndDate:    parseDate(req.EndDate),
 		}
 		if err := h.Repo.Create(task); err == nil {
 			created = append(created, *task)
@@ -234,7 +215,6 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 
 // Reorder godoc
 // @Summary      Reorder tasks
-// @Description  Update sort order of tasks
 // @Tags         AirdropTasks
 // @Accept       json
 // @Produce      json

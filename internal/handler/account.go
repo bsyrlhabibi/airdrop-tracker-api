@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/bsyrlhabibi/airdrop/internal/model"
 	"github.com/bsyrlhabibi/airdrop/internal/repository"
@@ -243,13 +244,19 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 
 	var tasks []model.Task
 	for _, gt := range globalTasks {
-		tasks = append(tasks, model.Task{
-			Name:       gt.Name,
-			CategoryID: gt.CategoryID,
-			Status:     "pending",
-			Frequency:  gt.Frequency,
-			Date:       gt.Date,
-		})
+		// Set task date to start_date of global task (or today)
+			taskDate := gt.StartDate
+			if taskDate == nil {
+				// Use today if no start date
+				taskDate = &[]time.Time{time.Now()}[0]
+			}
+			tasks = append(tasks, model.Task{
+				Name:       gt.Name,
+				CategoryID: gt.CategoryID,
+				Status:     "pending",
+				Frequency:  "daily",
+				Date:       taskDate,
+			})
 	}
 
 	aa, err := h.AARepo.AssignAirdrop(uint(accountID), req.AirdropID, "active", req.Notes, tasks)

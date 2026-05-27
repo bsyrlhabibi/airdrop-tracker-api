@@ -75,12 +75,13 @@ func fixLegacyAirdropSchema() {
 }
 
 func fixLegacyAirdropTaskSchema() {
-	// Check if old columns exist (description, is_completed, completed_at, frequency)
-	var hasDesc, hasCompleted int
+	// Check if old columns exist
+	var hasDesc, hasCompleted, hasDate int
 	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrop_tasks') WHERE name = 'description'").Scan(&hasDesc)
 	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrop_tasks') WHERE name = 'is_completed'").Scan(&hasCompleted)
+	DB.Raw("SELECT COUNT(*) FROM pragma_table_info('airdrop_tasks') WHERE name = 'date'").Scan(&hasDate)
 
-	if hasDesc == 0 && hasCompleted == 0 {
+	if hasDesc == 0 && hasCompleted == 0 && hasDate == 0 {
 		return // already new schema
 	}
 
@@ -92,19 +93,31 @@ func fixLegacyAirdropTaskSchema() {
 		category_id INTEGER,
 		name TEXT NOT NULL DEFAULT '',
 		status TEXT DEFAULT 'pending',
-		date DATETIME,
+		start_date DATETIME,
+		end_date DATETIME,
 		sort_order INTEGER DEFAULT 0,
 		created_at DATETIME,
 		updated_at DATETIME
 	)`)
 
-	// Migrate data: description -> name, is_completed -> status
-	DB.Exec(`INSERT INTO airdrop_tasks_new (id, airdrop_id, name, status, sort_order, created_at, updated_at)
-		SELECT id, airdrop_id,
-			COALESCE(description, ''),
-			CASE WHEN is_completed = 1 THEN 'finish' ELSE 'pending' END,
-			sort_order, created_at, updated_at
-		FROM airdrop_tasks`)
+	// Migrate data
+	if hasDesc > 0 {
+		// Old schema with description/is_completed
+		DB.Exec(`INSERT INTO airdrop_tasks_new (id, airdrop_id, name, status, sort_order, created_at, updated_at)
+			SELECT id, airdrop_id,
+				COALESCE(description, ''),
+				CASE WHEN is_completed = 1 THEN 'end' ELSE 'pending' END,
+				sort_order, created_at, updated_at
+			FROM airdrop_tasks`)
+	} else if hasDate > 0 {
+		// Intermediate schema with date
+		DB.Exec(`INSERT INTO airdrop_tasks_new (id, airdrop_id, category_id, name, status, start_date, sort_order, created_at, updated_at)
+			SELECT id, airdrop_id, category_id, name, status, date, sort_order, created_at, updated_at
+			FROM airdrop_tasks`)
+	} else {
+		// Already has start_date/end_date
+		return
+	}
 
 	DB.Exec(`DROP TABLE IF EXISTS airdrop_tasks`)
 	DB.Exec(`ALTER TABLE airdrop_tasks_new RENAME TO airdrop_tasks`)
