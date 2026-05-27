@@ -178,9 +178,9 @@ func (h *ExportHandler) ExportExcel(c *gin.Context) {
 
 			status := "🔴 Not Started"
 			if totalTasks > 0 && completionPct == 100 {
-				status = "🟢 Completed"
+				status = "✅ Completed"
 			} else if completedTasks > 0 {
-				status = "🟡 In Progress"
+				status = "🔄 In Progress"
 			}
 
 			vals := []interface{}{acc.Name, totalAirdrops, completedAirdrops, activeAirdrops, totalTasks, completedTasks, pendingTasks, fmt.Sprintf("%.0f%%", completionPct), len(acc.Wallets), chainList, status}
@@ -246,9 +246,22 @@ func (h *ExportHandler) ExportExcel(c *gin.Context) {
 						gasSpent = fmt.Sprintf("$%.2f", task.GasSpent)
 					}
 
+					statusDisplay := task.Status
+					switch task.Status {
+					case "finish":
+						statusDisplay = "Finished"
+					case "ongoing":
+						statusDisplay = "Ongoing"
+					case "missed":
+						statusDisplay = "Missed"
+					case "pending":
+						statusDisplay = "Pending"
+					case "cancel":
+						statusDisplay = "Cancelled"
+					}
 					vals := []interface{}{
 						acc.Name, airdropName, task.Name, categoryName,
-						task.Status, dateStr, gasSpent, task.TxHash,
+						statusDisplay, dateStr, gasSpent, task.TxHash,
 					}
 
 					for colIdx, v := range vals {
@@ -262,7 +275,7 @@ func (h *ExportHandler) ExportExcel(c *gin.Context) {
 					switch task.Status {
 					case "finish":
 						f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
-					case "cancel":
+					case "cancel", "missed":
 						f.SetCellStyle(sheet, statusCell, statusCell, redStyle)
 					case "ongoing":
 						f.SetCellStyle(sheet, statusCell, statusCell, yellowStyle)
@@ -362,10 +375,95 @@ func (h *ExportHandler) ExportExcel(c *gin.Context) {
 		}
 	}
 
+
+	// ========== Sheet 5: Airdrop Tasks (Templates) ==========
+	{
+		sheet := "Airdrop Tasks"
+		f.NewSheet(sheet)
+
+		// Load all airdrop tasks with relations
+		var allAirdropTasks []model.AirdropTask
+		h.DB.Where("airdrop_id IN (?)", h.DB.Model(&model.Airdrop{}).Select("id").Where("user_id = ?", userID)).
+			Preload("Airdrop").Preload("Category").Order("airdrop_id ASC, sort_order ASC").Find(&allAirdropTasks)
+
+		headers := []string{"Airdrop Name", "Task Name", "Category", "Status", "Start Date", "End Date"}
+		widths := []float64{22, 30, 16, 12, 14, 14}
+
+		for i, h := range headers {
+			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+			f.SetCellValue(sheet, cell, h)
+			f.SetCellStyle(sheet, cell, cell, headerStyle)
+			col, _ := excelize.ColumnNumberToName(i + 1)
+			f.SetColWidth(sheet, col, col, widths[i])
+		}
+		f.SetRowHeight(sheet, 1, 30)
+
+		for i, t := range allAirdropTasks {
+			row := i + 2
+
+			airdropName := ""
+			if t.Airdrop != nil {
+				airdropName = t.Airdrop.Name
+			}
+			categoryName := ""
+			if t.Category != nil {
+				categoryName = t.Category.Name
+			}
+
+			startStr := ""
+			if t.StartDate != nil {
+				startStr = t.StartDate.Format("2006-01-02")
+			}
+			endStr := ""
+			if t.EndDate != nil {
+				endStr = t.EndDate.Format("2006-01-02")
+			}
+
+			statusDisplay := t.Status
+			switch t.Status {
+			case "end":
+				statusDisplay = "Ended"
+			case "ongoing":
+				statusDisplay = "Ongoing"
+			case "pending":
+				statusDisplay = "Pending"
+			}
+
+			vals := []interface{}{airdropName, t.Name, categoryName, statusDisplay, startStr, endStr}
+			for colIdx, v := range vals {
+				cell, _ := excelize.CoordinatesToCellName(colIdx+1, row)
+				f.SetCellValue(sheet, cell, v)
+				f.SetCellStyle(sheet, cell, cell, cellStyle)
+			}
+
+			// Status color
+			statusCell, _ := excelize.CoordinatesToCellName(4, row)
+			switch t.Status {
+			case "end":
+				f.SetCellStyle(sheet, statusCell, statusCell, greenStyle)
+			case "ongoing":
+				f.SetCellStyle(sheet, statusCell, statusCell, yellowStyle)
+			}
+
+			if i%2 == 1 {
+				startCell, _ := excelize.CoordinatesToCellName(1, row)
+				endCell, _ := excelize.CoordinatesToCellName(len(headers), row)
+				f.SetCellStyle(sheet, startCell, endCell, altRowStyle)
+			}
+			f.SetRowHeight(sheet, row, 24)
+		}
+	}
+
 	f.DeleteSheet("Sheet1")
 	f.SetActiveSheet(0)
 
-	for _, sheet := range []string{"Overview", "Tasks", "Wallets"} {
+	// Auto-filter + freeze panes on data sheets
+	for _, sheet := range []string{"Overview", "Tasks", "Wallets", "Airdrop Tasks"} {
+		rows, _ := f.GetRows(sheet)
+		if len(rows) > 1 {
+			lastCol, _ := excelize.ColumnNumberToName(len(rows[0]))
+			f.AutoFilter(sheet, fmt.Sprintf("A1:%s%d", lastCol, len(rows)), []excelize.AutoFilterOptions{})
+		}
 		f.SetPanes(sheet, &excelize.Panes{
 			Freeze: true, Split: false, XSplit: 0, YSplit: 1,
 			TopLeftCell: "A2", ActivePane: "bottomLeft",
