@@ -237,6 +237,13 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 		return
 	}
 
+	// Check if already assigned — prevent duplicates
+	var existingAA model.AccountAirdrop
+	if err := h.DB.Where("account_id = ? AND airdrop_id = ?", accountID, req.AirdropID).First(&existingAA).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Airdrop already assigned to this account"})
+		return
+	}
+
 	// Auto-sync tasks from global airdrop tasks
 	var globalTasks []model.AirdropTask
 	h.DB.Where("airdrop_id = ?", req.AirdropID).Order("sort_order ASC, created_at ASC").Find(&globalTasks)

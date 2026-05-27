@@ -101,10 +101,13 @@ func (r *TaskRepo) expandTasksFromAirdrop(accountID uint, date string, targetDat
 				}
 			}
 
-			// Check if account task already exists for this date + airdrop task name
+			// Check if account task already exists for this date + task name
+			// Use account_id level (not account_airdrop_id) to prevent duplicates
+			// when multiple AccountAirdrop entries exist for same airdrop
 			var existing int64
 			r.DB.Model(&model.Task{}).
-				Where("account_airdrop_id = ? AND name = ? AND DATE(date) = ?", aa.ID, at.Name, date).
+				Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+				Where("account_airdrops.account_id = ? AND tasks.name = ? AND DATE(tasks.date) = ?", accountID, at.Name, date).
 				Count(&existing)
 
 			if existing > 0 {
