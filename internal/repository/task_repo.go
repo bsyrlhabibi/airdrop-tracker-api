@@ -40,16 +40,21 @@ func (r *TaskRepo) Delete(id uint) error {
 }
 
 // FindTodayByAccount finds tasks for an account on a specific date.
-// For recurring tasks (daily/weekly/monthly), it auto-creates new entries
-// for the requested date if they don't exist yet. This ensures each day
-// has independent task entries with their own status.
+// It auto-creates account task entries for airdrop tasks whose
+// start_date → end_date range covers the requested date.
 func (r *TaskRepo) FindTodayByAccount(accountID uint, date string) ([]model.Task, error) {
-	// First: auto-expand recurring tasks for this date
-	r.expandRecurringTasks(accountID, date)
+	// Parse target date
+	targetDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, err
+	}
 
-	// Then: return all tasks for this date
+	// Auto-expand: ensure account tasks exist for today
+	r.expandTasksFromAirdrop(accountID, date, targetDate)
+
+	// Return all tasks for this date
 	var tasks []model.Task
-	err := r.DB.
+	err = r.DB.
 		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
 		Where("account_airdrops.account_id = ?", accountID).
 		Where("tasks.date = ?", date).
@@ -61,82 +66,61 @@ func (r *TaskRepo) FindTodayByAccount(accountID uint, date string) ([]model.Task
 	return tasks, err
 }
 
-// expandRecurringTasks creates new task entries for recurring tasks
-// that don't have an entry for the given date yet.
-func (r *TaskRepo) expandRecurringTasks(accountID uint, date string) {
-	// Parse the target date
-	targetDate, err := time.Parse("2006-01-02", date)
-	if err != nil {
-		return
-	}
+// expandTasksFromAirdrop ensures account task entries exist for each
+// airdrop task whose start_date→end_date range covers the target date.
+func (r *TaskRepo) expandTasksFromAirdrop(accountID uint, date string, targetDate time.Time) {
+	target := time.Date(targetDate.Year(), targetDate.Month(), targetDate.Day(), 0, 0, 0, 0, time.UTC)
 
 	// Find all account-airdrops for this account
 	var accountAirdrops []model.AccountAirdrop
 	r.DB.Where("account_id = ?", accountID).Find(&accountAirdrops)
 
 	for _, aa := range accountAirdrops {
-		// Find recurring tasks (daily/weekly/monthly) for this account-airdrop
-		// that are "seed" tasks (original templates)
-		var recurringTasks []model.Task
-		r.DB.Where("account_airdrop_id = ? AND frequency != 'once'", aa.ID).Find(&recurringTasks)
+		// Get airdrop tasks (global template) for this airdrop
+		var airdropTasks []model.AirdropTask
+		r.DB.Where("airdrop_id = ?", aa.AirdropID).Find(&airdropTasks)
 
-		for _, rt := range recurringTasks {
-			// Check if a task already exists for this date with this name+account_airdrop
-			var existing int64
-			r.DB.Model(&model.Task{}).
-				Where("account_airdrop_id = ? AND name = ? AND date = ?", aa.ID, rt.Name, date).
-				Count(&existing)
-
-			if existing > 0 {
-				continue // Already has entry for this date
+		for _, at := range airdropTasks {
+			// Check if target date falls within start_date → end_date range
+			if at.StartDate == nil {
+				continue // No start date, skip
 			}
 
-			// Check if this recurring task should appear on the target date
-			if !shouldRecurOnDate(rt, targetDate) {
+			start := time.Date(at.StartDate.Year(), at.StartDate.Month(), at.StartDate.Day(), 0, 0, 0, 0, time.UTC)
+
+			// Target must be >= start_date
+			if target.Before(start) {
 				continue
 			}
 
-			// Create new task entry for this date with "pending" status
+			// If end_date is set, target must be <= end_date
+			if at.EndDate != nil {
+				end := time.Date(at.EndDate.Year(), at.EndDate.Month(), at.EndDate.Day(), 0, 0, 0, 0, time.UTC)
+				if target.After(end) {
+					continue
+				}
+			}
+
+			// Check if account task already exists for this date + airdrop task name
+			var existing int64
+			r.DB.Model(&model.Task{}).
+				Where("account_airdrop_id = ? AND name = ? AND date = ?", aa.ID, at.Name, date).
+				Count(&existing)
+
+			if existing > 0 {
+				continue // Already exists
+			}
+
+			// Create new account task entry for this date
 			newTask := model.Task{
 				AccountAirdropID: aa.ID,
-				CategoryID:       rt.CategoryID,
-				Name:             rt.Name,
+				CategoryID:       at.CategoryID,
+				Name:             at.Name,
 				Status:           "pending",
-				Frequency:        rt.Frequency,
-				Date:             &targetDate,
+				Frequency:        "daily",
+				Date:             &target,
 			}
 			r.DB.Create(&newTask)
 		}
-	}
-}
-
-// shouldRecurOnDate checks if a recurring task should appear on the target date.
-func shouldRecurOnDate(task model.Task, target time.Time) bool {
-	if task.Date == nil {
-		return true // No start date, always show
-	}
-
-	start := *task.Date
-
-	// Normalize to date only
-	startDate := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
-	targetDate := time.Date(target.Year(), target.Month(), target.Day(), 0, 0, 0, 0, time.UTC)
-
-	// Target must be >= start date
-	if targetDate.Before(startDate) {
-		return false
-	}
-
-	switch task.Frequency {
-	case "daily":
-		return true
-	case "weekly":
-		// Same day of week
-		return targetDate.Weekday() == startDate.Weekday()
-	case "monthly":
-		// Same day of month
-		return targetDate.Day() == startDate.Day()
-	default:
-		return false
 	}
 }
