@@ -22,6 +22,7 @@ type CreateAirdropRequest struct {
 	Chain     string `json:"chain" example:"Ethereum"`
 	Category  string `json:"category" example:"rumored"`
 	Priority  string `json:"priority" example:"high"`
+	Status    string `json:"status" example:"active"`
 	URL       string `json:"url" example:"https://zksync.io"`
 	DateStart string `json:"date_start" example:"2025-01-01"`
 	DateEnd   string `json:"date_end" example:"2025-12-31"`
@@ -80,12 +81,17 @@ func (h *AirdropHandler) Create(c *gin.Context) {
 		return
 	}
 
+	if req.Status == "" {
+		req.Status = "active"
+	}
+
 	airdrop := &model.Airdrop{
 		UserID:    userID,
 		Name:      req.Name,
 		Chain:     req.Chain,
 		Category:  req.Category,
 		Priority:  req.Priority,
+		Status:    req.Status,
 		URL:       req.URL,
 		DateStart: parseDate(req.DateStart),
 		DateEnd:   parseDate(req.DateEnd),
