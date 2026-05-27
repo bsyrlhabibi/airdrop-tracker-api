@@ -52,12 +52,12 @@ func (r *TaskRepo) FindTodayByAccount(accountID uint, date string) ([]model.Task
 	// Auto-expand: ensure account tasks exist for today
 	r.expandTasksFromAirdrop(accountID, date, targetDate)
 
-	// Return all tasks for this date
+	// Return all tasks for this date (use DATE() for SQLite compatibility)
 	var tasks []model.Task
 	err = r.DB.
 		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
 		Where("account_airdrops.account_id = ?", accountID).
-		Where("tasks.date = ?", date).
+		Where("DATE(tasks.date) = ?", date).
 		Preload("Category").
 		Preload("AccountAirdrop").
 		Preload("AccountAirdrop.Airdrop").
@@ -104,7 +104,7 @@ func (r *TaskRepo) expandTasksFromAirdrop(accountID uint, date string, targetDat
 			// Check if account task already exists for this date + airdrop task name
 			var existing int64
 			r.DB.Model(&model.Task{}).
-				Where("account_airdrop_id = ? AND name = ? AND date = ?", aa.ID, at.Name, date).
+				Where("account_airdrop_id = ? AND name = ? AND DATE(date) = ?", aa.ID, at.Name, date).
 				Count(&existing)
 
 			if existing > 0 {
