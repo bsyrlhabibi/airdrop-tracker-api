@@ -11,12 +11,11 @@ import (
 )
 
 type TaskHandler struct {
-	Repo   *repository.TaskRepo
-	AARepo *repository.AccountAirdropRepo
+	Repo *repository.TaskRepo
 }
 
-func NewTaskHandler(repo *repository.TaskRepo, aaRepo *repository.AccountAirdropRepo) *TaskHandler {
-	return &TaskHandler{Repo: repo, AARepo: aaRepo}
+func NewTaskHandler(repo *repository.TaskRepo) *TaskHandler {
+	return &TaskHandler{Repo: repo}
 }
 
 type CreateTaskRequest struct {
@@ -42,18 +41,6 @@ type UpdateTaskRequest struct {
 // @Produce      json
 // @Security     BearerAuth
 // @Param        id   path      int  true  "Account Airdrop ID"
-// @Success      200  {array}   model.Task
-// @Router       /api/account-airdrops/{id}/tasks [get]
-func (h *TaskHandler) List(c *gin.Context) {
-	accountAirdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-	tasks, err := h.Repo.FindByAccountAirdrop(uint(accountAirdropID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, tasks)
-}
-
 // Create Task godoc
 // @Summary      Create task
 // @Description  Add new task to an account-airdrop

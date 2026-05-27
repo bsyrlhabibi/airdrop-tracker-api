@@ -45,8 +45,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 	authH := handler.NewAuthHandler(userRepo, cfg.JWTSecret)
 	accountH := handler.NewAccountHandler(accountRepo, airdropRepo, aaRepo, db)
 	airdropH := handler.NewAirdropHandler(airdropRepo)
-	aaH := handler.NewAccountAirdropHandler(aaRepo)
-	taskH := handler.NewTaskHandler(taskRepo, aaRepo)
+	taskH := handler.NewTaskHandler(taskRepo)
 	walletH := handler.NewWalletHandler(walletRepo)
 	dashboardH := handler.NewDashboardHandler(db)
 	categoryH := handler.NewCategoryHandler(categoryRepo)
@@ -76,11 +75,7 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// Account → Airdrop assignment
 	auth.POST("/accounts/:id/airdrops", accountH.AssignAirdrop)
-	auth.GET("/accounts/:id/airdrops", accountH.GetAccountAirdrops)
 	auth.DELETE("/accounts/:id/airdrops/:airdrop_id", accountH.RemoveAirdrop)
-
-	// Account clone
-	auth.POST("/accounts/:id/clone", accountH.CloneAccount)
 
 	// Airdrops (global catalog)
 	auth.GET("/airdrops", airdropH.List)
@@ -94,17 +89,10 @@ func Setup(cfg *config.Config) *gin.Engine {
 	airdropTaskH := handler.NewAirdropTaskHandler(airdropTaskRepo, airdropRepo)
 	auth.GET("/airdrops/:id/tasks", airdropTaskH.List)
 	auth.POST("/airdrops/:id/tasks", airdropTaskH.Create)
-	auth.POST("/airdrops/:id/tasks/bulk", airdropTaskH.BulkCreate)
-	auth.PUT("/airdrops/:id/tasks/reorder", airdropTaskH.Reorder)
 	auth.PUT("/airdrop-tasks/:id", airdropTaskH.Update)
 	auth.DELETE("/airdrop-tasks/:id", airdropTaskH.Delete)
 
-	// AccountAirdrops (direct operations)
-	auth.GET("/account-airdrops/:id", aaH.Get)
-	auth.PUT("/account-airdrops/:id", aaH.Update)
-
 	// Tasks (per account-airdrop)
-	auth.GET("/account-airdrops/:id/tasks", taskH.List)
 	auth.POST("/account-airdrops/:id/tasks", taskH.Create)
 	auth.PUT("/tasks/:id", taskH.Update)
 	auth.DELETE("/tasks/:id", taskH.Delete)
@@ -124,7 +112,6 @@ func Setup(cfg *config.Config) *gin.Engine {
 
 	// Dashboard
 	auth.GET("/dashboard", dashboardH.Summary)
-	auth.GET("/dashboard/comparison", accountH.GetComparison)
 
 	return r
 }

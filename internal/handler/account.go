@@ -38,11 +38,6 @@ type AssignAirdropRequest struct {
 	Notes     string `json:"notes" example:"Focus on bridging"`
 }
 
-type CloneAccountRequest struct {
-	Name  string `json:"name" example:"Akun 2"`
-	Color string `json:"color" example:"#EF4444"`
-}
-
 // List Accounts godoc
 // @Summary      List all accounts
 // @Description  Get all sybil accounts for authenticated user
@@ -277,27 +272,6 @@ func (h *AccountHandler) AssignAirdrop(c *gin.Context) {
 // @Param        id   path      int  true  "Account ID"
 // @Success      200  {array}   model.AccountAirdrop
 // @Failure      401  {object}  map[string]string
-// @Failure      404  {object}  map[string]string
-// @Router       /api/accounts/{id}/airdrops [get]
-func (h *AccountHandler) GetAccountAirdrops(c *gin.Context) {
-	userID := c.MustGet("user_id").(uint)
-	accountID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-
-	_, err := h.Repo.FindByID(uint(accountID), userID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Account not found"})
-		return
-	}
-
-	aas, err := h.AARepo.FindByAccount(uint(accountID))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, aas)
-}
-
 // RemoveAirdrop godoc
 // @Summary      Remove airdrop from account
 // @Description  Unlink an airdrop from an account and delete associated tasks
@@ -329,109 +303,3 @@ func (h *AccountHandler) RemoveAirdrop(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Airdrop removed from account"})
 }
 
-// CloneAccount godoc
-// @Summary      Clone account
-// @Description  Clone an account with its airdrop assignments and tasks (not wallets)
-// @Tags         Accounts
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        id   path      int                 true  "Source Account ID"
-// @Param        body body      CloneAccountRequest true  "New account data"
-// @Success      201  {object}  model.Account
-// @Failure      400  {object}  map[string]string
-// @Failure      401  {object}  map[string]string
-// @Failure      404  {object}  map[string]string
-// @Router       /api/accounts/{id}/clone [post]
-func (h *AccountHandler) CloneAccount(c *gin.Context) {
-	userID := c.MustGet("user_id").(uint)
-	sourceID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
-
-	var req CloneAccountRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if req.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
-		return
-	}
-
-	if req.Color == "" {
-		req.Color = "#3B82F6"
-	}
-
-	newAccount, err := h.Repo.CloneAccount(uint(sourceID), userID, req.Name, req.Color)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, newAccount)
-}
-
-// GetComparison godoc
-// @Summary      Get comparison table
-// @Description  Get per-account progress stats for comparison
-// @Tags         Dashboard
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {array}   handler.ComparisonRow
-// @Failure      401  {object}  map[string]string
-// @Router       /api/dashboard/comparison [get]
-func (h *AccountHandler) GetComparison(c *gin.Context) {
-	userID := c.MustGet("user_id").(uint)
-
-	accounts, err := h.Repo.FindByUser(userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	var rows []ComparisonRow
-	for _, acc := range accounts {
-		totalAirdrops := int64(len(acc.AccountAirdrops))
-		completedAirdrops := int64(0)
-		totalTasks := int64(0)
-		completedTasks := int64(0)
-
-		for _, aa := range acc.AccountAirdrops {
-			if aa.Status == "completed" {
-				completedAirdrops++
-			}
-			for _, t := range aa.Tasks {
-				totalTasks++
-				if t.Status == "finish" {
-					completedTasks++
-				}
-			}
-		}
-
-		rows = append(rows, ComparisonRow{
-			AccountID:         acc.ID,
-			AccountName:       acc.Name,
-			AccountColor:      acc.Color,
-			TotalAirdrops:     totalAirdrops,
-			CompletedAirdrops: completedAirdrops,
-			TotalTasks:        totalTasks,
-			CompletedTasks:    completedTasks,
-			PendingTasks:      totalTasks - completedTasks,
-			WalletCount:       int64(len(acc.Wallets)),
-		})
-	}
-
-	c.JSON(http.StatusOK, rows)
-}
-
-type ComparisonRow struct {
-	AccountID         uint   `json:"account_id"`
-	AccountName       string `json:"account_name"`
-	AccountColor      string `json:"account_color"`
-	TotalAirdrops     int64  `json:"total_airdrops"`
-	CompletedAirdrops int64  `json:"completed_airdrops"`
-	TotalTasks        int64  `json:"total_tasks"`
-	CompletedTasks    int64  `json:"completed_tasks"`
-	PendingTasks      int64  `json:"pending_tasks"`
-	WalletCount       int64  `json:"wallet_count"`
-}
