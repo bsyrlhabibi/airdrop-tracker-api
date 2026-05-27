@@ -22,6 +22,8 @@ type DashboardSummary struct {
 	TotalTasks     int64          `json:"total_tasks"`
 	CompletedTasks int64          `json:"completed_tasks"`
 	PendingTasks   int64          `json:"pending_tasks"`
+	OngoingTasks   int64          `json:"ongoing_tasks"`
+	MissedTasks    int64          `json:"missed_tasks"`
 	TotalWallets   int64          `json:"total_wallets"`
 	TotalAccounts  int64          `json:"total_accounts"`
 	Accounts       []AccountStats `json:"accounts,omitempty"`
@@ -36,6 +38,8 @@ type AccountStats struct {
 	TotalTasks     int64  `json:"total_tasks"`
 	CompletedTasks int64  `json:"completed_tasks"`
 	PendingTasks   int64  `json:"pending_tasks"`
+	OngoingTasks   int64  `json:"ongoing_tasks"`
+	MissedTasks    int64  `json:"missed_tasks"`
 	TotalWallets   int64  `json:"total_wallets"`
 }
 
@@ -71,6 +75,20 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 		Where("accounts.user_id = ? AND tasks.status = ?", userID, "finish").
 		Count(&completedTasks)
 
+	var ongoingTasks int64
+	h.DB.Model(&model.Task{}).
+		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+		Joins("JOIN accounts ON accounts.id = account_airdrops.account_id").
+		Where("accounts.user_id = ? AND tasks.status = ?", userID, "ongoing").
+		Count(&ongoingTasks)
+
+	var missedTasks int64
+	h.DB.Model(&model.Task{}).
+		Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+		Joins("JOIN accounts ON accounts.id = account_airdrops.account_id").
+		Where("accounts.user_id = ? AND tasks.status = ?", userID, "missed").
+		Count(&missedTasks)
+
 	var totalWallets int64
 	h.DB.Model(&model.Wallet{}).Where("user_id = ?", userID).Count(&totalWallets)
 
@@ -101,6 +119,18 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 			Where("account_airdrops.account_id = ? AND tasks.status = ?", acc.ID, "finish").
 			Count(&accCompletedTasks)
 
+		var accOngoingTasks int64
+		h.DB.Model(&model.Task{}).
+			Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+			Where("account_airdrops.account_id = ? AND tasks.status = ?", acc.ID, "ongoing").
+			Count(&accOngoingTasks)
+
+		var accMissedTasks int64
+		h.DB.Model(&model.Task{}).
+			Joins("JOIN account_airdrops ON account_airdrops.id = tasks.account_airdrop_id").
+			Where("account_airdrops.account_id = ? AND tasks.status = ?", acc.ID, "missed").
+			Count(&accMissedTasks)
+
 		var accWallets int64
 		h.DB.Model(&model.Wallet{}).Where("account_id = ?", acc.ID).Count(&accWallets)
 
@@ -112,7 +142,9 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 			ActiveAirdrops: accActiveAirdrops,
 			TotalTasks:     accTotalTasks,
 			CompletedTasks: accCompletedTasks,
-			PendingTasks:   accTotalTasks - accCompletedTasks,
+			PendingTasks:   accTotalTasks - accCompletedTasks - accOngoingTasks - accMissedTasks,
+			OngoingTasks:   accOngoingTasks,
+			MissedTasks:    accMissedTasks,
 			TotalWallets:   accWallets,
 		})
 	}
@@ -122,7 +154,9 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 		ActiveAirdrops: activeAirdrops,
 		TotalTasks:     totalTasks,
 		CompletedTasks: completedTasks,
-		PendingTasks:   totalTasks - completedTasks,
+		PendingTasks:   totalTasks - completedTasks - ongoingTasks - missedTasks,
+		OngoingTasks:   ongoingTasks,
+		MissedTasks:    missedTasks,
 		TotalWallets:   totalWallets,
 		TotalAccounts:  totalAccounts,
 		Accounts:       accountStats,
