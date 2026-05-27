@@ -30,12 +30,12 @@ type CreateAirdropTaskRequest struct {
 // @Tags         AirdropTasks
 // @Produce      json
 // @Security     BearerAuth
-// @Param        airdrop_id path int true "Airdrop ID"
+// @Param        id path int true "Airdrop ID"
 // @Success      200  {array}  model.AirdropTask
 // @Router       /api/airdrops/{airdrop_id}/tasks [get]
 func (h *AirdropTaskHandler) List(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
-	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
+	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	// Verify airdrop belongs to user
 	_, err := h.AirdropRepo.FindByID(uint(airdropID), userID)
@@ -59,13 +59,13 @@ func (h *AirdropTaskHandler) List(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        airdrop_id path int true "Airdrop ID"
+// @Param        id path int true "Airdrop ID"
 // @Param        body body CreateAirdropTaskRequest true "Task data"
 // @Success      201  {object}  model.AirdropTask
 // @Router       /api/airdrops/{airdrop_id}/tasks [post]
 func (h *AirdropTaskHandler) Create(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
-	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
+	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	// Verify airdrop belongs to user
 	_, err := h.AirdropRepo.FindByID(uint(airdropID), userID)
@@ -153,12 +153,12 @@ func (h *AirdropTaskHandler) Delete(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        airdrop_id path int true "Airdrop ID"
+// @Param        id path int true "Airdrop ID"
 // @Param        body body []uint true "Task IDs in order"
 // @Success      200  {object}  map[string]string
 // @Router       /api/airdrops/{airdrop_id}/tasks/reorder [put]
 func (h *AirdropTaskHandler) Reorder(c *gin.Context) {
-	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
+	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	var taskIDs []uint
 	if err := c.ShouldBindJSON(&taskIDs); err != nil {
@@ -182,13 +182,13 @@ func (h *AirdropTaskHandler) Reorder(c *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        airdrop_id path int true "Airdrop ID"
+// @Param        id path int true "Airdrop ID"
 // @Param        body body []CreateAirdropTaskRequest true "Tasks"
 // @Success      201  {array}  model.AirdropTask
 // @Router       /api/airdrops/{airdrop_id}/tasks/bulk [post]
 func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 	userID := c.MustGet("user_id").(uint)
-	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
+	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	_, err := h.AirdropRepo.FindByID(uint(airdropID), userID)
 	if err != nil {
@@ -227,11 +227,11 @@ func (h *AirdropTaskHandler) BulkCreate(c *gin.Context) {
 // @Tags         AirdropTasks
 // @Produce      json
 // @Security     BearerAuth
-// @Param        airdrop_id path int true "Airdrop ID"
+// @Param        id path int true "Airdrop ID"
 // @Success      200  {object}  map[string]string
 // @Router       /api/airdrops/{airdrop_id}/tasks/reset [put]
 func (h *AirdropTaskHandler) ResetAll(c *gin.Context) {
-	airdropID, _ := strconv.ParseUint(c.Param("airdrop_id"), 10, 64)
+	airdropID, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	h.Repo.DB.Model(&model.AirdropTask{}).
 		Where("airdrop_id = ?", uint(airdropID)).
