@@ -1,546 +1,403 @@
-# 📖 GUIDE — Cara Menjalankan Airdrop Tracker API
+# Airdrop Tracker API — Beginner's Guide
 
-Panduan **lengkap dari nol** untuk orang yang belum pernah pakai Go.
-Ikuti langkah-langkah berurutan, jangan skip!
-
----
-
-## 📋 Daftar Isi
-
-1. [Persiapan](#1-persiapan)
-2. [Install Go](#2-install-go)
-3. [Clone Project](#3-clone-project)
-4. [Setup Environment](#4-setup-environment)
-5. [Install Dependencies](#5-install-dependencies)
-6. [Jalankan Server](#6-jalankan-server)
-7. [Buka Swagger UI](#7-buka-swagger-ui)
-8. [Test API Pertama Kali](#8-test-api-pertama-kali)
-9. [Generate Swagger Docs](#9-generate-swagger-docs)
-10. [Docker (Opsional)](#10-docker-opsional)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Cheat Sheet](#12-cheat-sheet)
+Welcome! This guide walks you through setting up and using the Airdrop Tracker API from scratch. No prior experience with Go is needed — just follow the steps.
 
 ---
 
-## 1. Persiapan
+## What Is This?
 
-Pastikan komputer kamu punya **2 tools** ini:
+This is a **backend API** (a server that responds to HTTP requests) for tracking cryptocurrency airdrops. It lets you:
 
-### Cek di Terminal / CMD / PowerShell:
+- **Create accounts** (sybil wallets) to participate in airdrops
+- **Track airdrops** you want to farm (e.g., zkSync, Arbitrum, Base)
+- **Manage tasks** for each airdrop per account (e.g., "Bridge 0.1 ETH")
+- **Record gas spent** and transaction hashes
+- **See a dashboard** with progress stats
+- **Export everything to Excel** with styled sheets
+
+The API does **not** have a UI — it returns JSON data. You connect a mobile or web frontend to it (or just test with curl/Postman).
+
+---
+
+## Prerequisites
+
+Before you start, make sure you have:
+
+1. **Go** (version 1.25 or later) — download from https://go.dev/dl/
+2. **A C compiler** — needed for the SQLite driver
+   - **macOS:** `xcode-select --install`
+   - **Ubuntu/Debian:** `sudo apt install gcc`
+   - **Windows:** Comes with Go installer or use TDM-GCC
+3. **Git** — to clone the repository
+
+Verify Go is installed:
 
 ```bash
 go version
+# Should print: go version go1.25.x ...
 ```
-
-```bash
-git --version
-```
-
-| Tool     | Output yang benar                      | Belum punya?                          |
-|----------|----------------------------------------|---------------------------------------|
-| **Go**   | `go version go1.22.x ...`              | [Install Go](#2-install-go)           |
-| **Git**  | `git version 2.x.x`                   | [Install Git](https://git-scm.com/)   |
-
-> 💡 **Terminal?**
-> - **Windows:** Tekan `Win + R` → ketik `cmd` → Enter. Atau pakai PowerShell.
-> - **Mac:** Tekan `Cmd + Space` → ketik `Terminal` → Enter.
-> - **Linux:** `Ctrl + Alt + T`
 
 ---
 
-## 2. Install Go
-
-Pilih sesuai OS kamu:
-
-### 🪟 Windows
-
-1. Buka **https://go.dev/dl/**
-2. Download file: `go1.22.x.windows-amd64.msi`
-3. **Double-click** file `.msi` → Next → Next → Install
-4. **Tutup** semua terminal, **buka baru**
-5. Ketik:
-   ```bash
-   go version
-   ```
-6. Harus muncul: `go version go1.22.x windows/amd64`
-
-> ⚠️ **Kalau belum muncul**, restart komputer dulu, lalu coba lagi.
-
-### 🍎 Mac
+## Step 1: Get the Code
 
 ```bash
-# Cara paling gampang — pakai Homebrew
-brew install go
-
-# Belum punya Homebrew? Install dulu:
-# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-# Lalu: brew install go
-```
-
-Atau download manual dari https://go.dev/dl/ → pilih `go1.22.x.darwin-arm64.pkg`
-
-### 🐧 Linux (Ubuntu / Debian)
-
-```bash
-# Download Go
-wget https://go.dev/dl/go1.22.5.linux-amd64.tar.gz
-
-# Extract ke /usr/local
-sudo tar -C /usr/local -xzf go1.22.5.linux-amd64.tar.gz
-
-# Tambahkan ke PATH (copy-paste sekaligus)
-echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-source ~/.bashrc
-
-# Cek
-go version
-```
-
-> Harus muncul: `go version go1.22.5 linux/amd64`
-
----
-
-## 3. Clone Project
-
-```bash
-git clone https://github.com/bsyrlhabibi/airdrop-tracker-api.git
+git clone <repo-url>
 cd airdrop-tracker-api
 ```
 
-**Cek isi folder:**
-```bash
-ls
-```
-
-Harus terlihat: `cmd/`, `internal/`, `Makefile`, `.env.example`, dll.
-
-> 💡 **Gak punya git?** Buka https://github.com/bsyrlhabibi/airdrop-tracker-api → klik tombol hijau **Code** → **Download ZIP** → Extract → buka folder di terminal.
-
 ---
 
-## 4. Setup Environment
+## Step 2: Configure Environment
 
-Project butuh file `.env` untuk konfigurasi database dan port.
-
-### Buat file .env:
+The app reads settings from a `.env` file. There's a template ready for you:
 
 ```bash
 cp .env.example .env
 ```
 
-### Edit file .env:
-
-Buka file `.env` dengan text editor apapun (Notepad, VS Code, nano, dll):
+Open `.env` in any text editor. You'll see:
 
 ```env
 APP_PORT=8080
-JWT_SECRET=rahasia-kuat-123-abc
+JWT_SECRET=change-me-to-random-string
 DB_PATH=data/airdrop.db
 ```
 
-**Penjelasan:**
+**What each setting does:**
 
-| Variable     | Apa ini?                              | Contoh                    |
-|--------------|-----------------------------------------|---------------------------|
-| `APP_PORT`   | Port server berjalan                    | `8080` (default, aman)    |
-| `JWT_SECRET` | Kunci enkripsi token login              | Bebas, makin random makin bagus |
-| `DB_PATH`    | Lokasi file database SQLite             | `data/airdrop.db` (default) |
-
-> 💡 **Tips JWT_SECRET:** Bisa isi apa saja, contoh: `my-super-secret-key-2024`
-> Atau generate random: `openssl rand -hex 32`
+- `APP_PORT` — The port the server listens on. Default `8080` is fine.
+- `JWT_SECRET` — A secret password used to sign login tokens. **Change this** to something random. You can generate one with: `openssl rand -hex 32`
+- `DB_PATH` — Where the SQLite database file is saved. Default is fine.
 
 ---
 
-## 5. Install Dependencies
-
-**Wajib jalankan ini** sebelum pertama kali run:
+## Step 3: Install Dependencies
 
 ```bash
-go mod tidy
+go mod download
 ```
 
-Perintah ini akan:
-- ✅ Download semua library yang dibutuhkan (Gin, GORM, JWT, Excelize, dll)
-- ✅ Bersihkan dependency yang tidak dipakai
-- ✅ Buat/update file `go.sum`
-
-**Tunggu sampai selesai** (mungkin 1-2 menit pertama kali).
-
-Output yang benar (tidak ada error):
-```
-go: downloading github.com/gin-gonic/gin v1.12.0
-go: downloading gorm.io/gorm v1.25.x
-...
-```
-
-> ⚠️ **Error?** Pastikan kamu sudah di dalam folder project (`cd airdrop-tracker-api`).
+This downloads all the Go libraries the project needs (Gin, GORM, JWT, etc.).
 
 ---
 
-## 6. Jalankan Server
-
-### Cara 1 — Pakai Makefile (Recommended ✅)
-
-```bash
-make run
-```
-
-### Cara 2 — Tanpa Makefile
-
-```bash
-go run cmd/server/main.go
-```
-
-### Output yang benar:
-
-```
-Database connected
-Migration done
-[GIN-debug] Listening and serving HTTP on :8080
-Server running on :8080
-Swagger UI: http://localhost:8080/swagger/index.html
-```
-
-> 🚨 **JANGAN TUTUP terminal ini!** Server harus tetap jalan.
-> Buka terminal baru kalau mau jalanin command lain.
-
----
-
-## 7. Buka Swagger UI
-
-1. Buka **browser** (Chrome / Firefox / Safari)
-2. Ketik di address bar:
-
-```
-http://localhost:8080/swagger/index.html
-```
-
-3. Harus muncul halaman **Swagger UI** dengan daftar semua API
-
-> ✅ **Kalau halaman muncul = server berjalan dengan benar!**
-
----
-
-## 8. Test API Pertama Kali
-
-### Step 1: Register Akun
-
-Di Swagger UI:
-
-1. Klik **POST /api/auth/register**
-2. Klik tombol **Try it out**
-3. Isi **Request body**:
-   ```json
-   {
-     "email": "test@email.com",
-     "password": "password123",
-     "name": "Bita"
-   }
-   ```
-4. Klik **Execute**
-5. Response harusnya: `201 Created`
-
-### Step 2: Login
-
-1. Klik **POST /api/auth/login**
-2. Klik **Try it out**
-3. Isi body:
-   ```json
-   {
-     "email": "test@email.com",
-     "password": "password123"
-   }
-   ```
-4. Klik **Execute**
-5. **Copy token** dari response:
-   ```json
-   {
-     "token": "eyJhbGciOiJIUzI1NiIs..."
-   }
-   ```
-   Copy nilai `token` (seluruh string panjang itu).
-
-### Step 3: Authorize
-
-1. Klik tombol **🔓 Authorize** di pojok kanan atas Swagger
-2. Di kolom input, ketik:
-   ```
-   Bearer eyJhbGciOiJIUzI1NiIs...
-   ```
-   (Ganti dengan token yang kamu copy tadi. **Jangan lupa** kata `Bearer` + spasi di depan!)
-3. Klik **Authorize** → **Close**
-
-### Step 4: Pakai API!
-
-Sekarang semua endpoint 🔒 sudah terbuka!
-
-**Coba buat airdrop pertama:**
-
-1. Klik **POST /api/airdrops**
-2. Klik **Try it out**
-3. Isi body:
-   ```json
-   {
-     "name": "zkSync",
-     "chain": "Ethereum",
-     "priority": "high",
-     "status": "active",
-     "url": "https://zksync.io",
-     "notes": "Bridge minimal $100 setiap minggu"
-   }
-   ```
-4. Klik **Execute**
-5. Response: `201 Created` ✅
-
-**Coba lihat dashboard:**
-
-1. Klik **GET /api/dashboard**
-2. Klik **Try it out** → **Execute**
-3. Harus muncul summary stats!
-
----
-
-## 9. Generate Swagger Docs
-
-Swagger docs sudah di-generate dan masuk ke folder `docs/`.
-Kalau kamu mengubah comment `@Summary`, `@Description`, dll di handler, **wajib regenerate**:
-
-```bash
-make swag
-```
-
-Atau tanpa Makefile:
-
-```bash
-swag init -g cmd/server/main.go
-```
-
-Lalu restart server:
-
-```bash
-make run
-```
-
-### Install swag CLI (kalau belum punya):
-
-```bash
-go install github.com/swaggo/swag/cmd/swag@latest
-```
-
-Pastikan `$GOPATH/bin` ada di PATH:
-
-```bash
-# Tambahkan di ~/.bashrc atau ~/.zshrc
-export PATH=$PATH:$(go env GOPATH)/bin
-source ~/.bashrc
-```
-
----
-
-## 10. Docker (Opsional)
-
-Kalau kamu punya Docker, bisa jalankan tanpa install Go:
-
-### Build image:
-
-```bash
-docker build -t airdrop-api .
-```
-
-### Run container:
-
-```bash
-docker run -d \
-  --name airdrop-api \
-  -p 8080:8080 \
-  -v airdrop_data:/app/data \
-  --restart unless-stopped \
-  airdrop-api
-```
-
-### Cek logs:
-
-```bash
-docker logs -f airdrop-api
-```
-
-### Stop & remove:
-
-```bash
-docker stop airdrop-api
-docker rm airdrop-api
-```
-
----
-
-## 11. Troubleshooting
-
-### ❌ `command not found: go`
-
-Go belum ter-install atau belum masuk PATH.
-
-```bash
-# Cek apakah Go ada di system
-which go
-
-# Kalau kosong, install Go dulu (Step 2)
-# Kalau sudah install, restart terminal / komputer
-```
-
-### ❌ `port already in use: 8080`
-
-Port 8080 sudah dipakai app lain.
-
-```bash
-# Cek siapa yang pakai
-lsof -i :8080
-
-# Ganti port di .env
-echo "APP_PORT=3001" >> .env
-
-# Atau matiin process yang pakai
-kill -9 <PID>
-```
-
-### ❌ `no such file or directory: data/airdrop.db`
-
-Folder `data/` belum ada. Buat manual:
+## Step 4: Create the Data Folder
 
 ```bash
 mkdir -p data
 ```
 
-Lalu jalankan lagi: `make run`
+This is where the SQLite database file (`airdrop.db`) will be created automatically on first run.
 
-### ❌ Swagger UI blank / 404
+---
 
-1. Pastikan server **sudah jalan** (Step 6)
-2. Coba regenerate docs:
-   ```bash
-   make swag
-   make run
-   ```
-3. Buka **baru** di browser: `http://localhost:8080/swagger/index.html`
-
-### ❌ `connection refused` saat test API
-
-Server belum jalan. Pastikan terminal `make run` masih terbuka dan menampilkan `Server running on :8080`.
-
-### ❌ `missing go.sum entry`
-
-Dependency belum lengkap. Jalankan ulang:
+## Step 5: Start the Server
 
 ```bash
-go mod tidy
-make run
+go run ./cmd/server/main.go
 ```
 
-### ❌ `CGO_ENABLED` error (SQLite compile)
+You should see output like:
 
-SQLite butuh CGO. Kalau error:
+```
+Database connected
+Migration done
+Server running on :8080
+Swagger UI: http://localhost:8080/swagger/index.html
+```
+
+The server is now running! Leave this terminal open.
+
+---
+
+## Step 6: Test It
+
+Open a **new terminal** and try these commands:
+
+### 6.1 Register a user
 
 ```bash
-# Linux — install gcc dulu
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"me@test.com","password":"mypassword","name":"Me"}'
+```
+
+Expected response:
+
+```json
+{
+  "message": "Registered",
+  "user": { "id": 1, "email": "me@test.com", "name": "Me" }
+}
+```
+
+### 6.2 Login and get a token
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"me@test.com","password":"mypassword"}'
+```
+
+Expected response:
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "user": { "id": 1, "email": "me@test.com", "name": "Me" }
+}
+```
+
+**Copy the token value.** You'll use it for every other request.
+
+### 6.3 Save the token for convenience
+
+```bash
+export TOKEN="eyJhbGciOiJIUzI1NiIs..."
+```
+
+Now you can use `$TOKEN` in all subsequent curl commands.
+
+### 6.4 Create your first airdrop
+
+```bash
+curl -X POST http://localhost:8080/api/airdrops \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"zkSync","chain":"Ethereum","priority":"high","notes":"Bridge weekly"}'
+```
+
+### 6.5 Create a sybil account
+
+```bash
+curl -X POST http://localhost:8080/api/accounts \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Account 1","color":"#EF4444","notes":"Main farming account"}'
+```
+
+### 6.6 Assign the airdrop to the account
+
+```bash
+curl -X POST http://localhost:8080/api/accounts/1/airdrops \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"airdrop_id":1}'
+```
+
+### 6.7 Check the dashboard
+
+```bash
+curl http://localhost:8080/api/dashboard \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 6.8 Export to Excel
+
+```bash
+curl -o my-airdrops.xlsx http://localhost:8080/api/export/excel \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Open `my-airdrops.xlsx` in Excel or Google Sheets — it has styled sheets with your data.
+
+---
+
+## Using Postman (Alternative to curl)
+
+If you prefer a GUI:
+
+1. Download [Postman](https://www.postman.com/downloads/)
+2. Create a new request
+3. Set the method (GET, POST, PUT, DELETE)
+4. Enter the URL (e.g., `http://localhost:8080/api/airdrops`)
+5. Go to the **Headers** tab and add:
+   - Key: `Authorization`
+   - Value: `Bearer <your-token>`
+6. For POST/PUT, go to the **Body** tab → select **raw** → **JSON** and paste the request body
+7. Click **Send**
+
+---
+
+## Folder Structure Explained
+
+Here's what each folder does:
+
+| Folder/File | What It Does |
+|---|---|
+| `cmd/server/main.go` | **Start here.** The entrypoint that boots everything up. |
+| `internal/config/` | Reads `.env` file and creates a config struct. |
+| `internal/database/` | Connects to SQLite and runs automatic migrations (creates tables). |
+| `internal/model/` | Defines your data structures (User, Airdrop, Account, Task, etc.). Think of these as database table schemas. |
+| `internal/repository/` | Database query functions. Each file handles DB operations for one model. |
+| `internal/handler/` | HTTP request handlers. Each file handles one resource's API endpoints. |
+| `internal/middleware/` | The JWT authentication middleware that checks tokens on protected routes. |
+| `internal/router/` | Maps URLs to handlers and configures CORS + Swagger. |
+| `docs/` | Auto-generated Swagger documentation files. |
+
+---
+
+## Data Model Overview
+
+Here's how the data connects:
+
+```
+User
+├── Accounts (sybil accounts)
+│   ├── Wallets (blockchain addresses)
+│   └── AccountAirdrops (assigned airdrops)
+│       └── Tasks (per-account task progress)
+├── Airdrops (global airdrop catalog)
+│   └── AirdropTasks (global task templates)
+└── Categories (task labels like "Bridge", "Swap", "Daily")
+```
+
+**Key relationships:**
+
+- An **Airdrop** is a global entry (e.g., "zkSync"). It belongs to one user.
+- An **Account** is a sybil identity (e.g., "Account 1"). It also belongs to one user.
+- **AccountAirdrop** links an Account to an Airdrop (many-to-many).
+- **AirdropTask** is a global task template (e.g., "Bridge 0.1 ETH") for an Airdrop.
+- **Task** is a per-account task created when you assign an airdrop to an account.
+- **Category** is a label you can attach to tasks (e.g., "Bridge", "Staking").
+- **Wallet** is a blockchain address tied to an Account.
+
+---
+
+## Status Values Reference
+
+### Airdrop Status
+- `active` — Currently farming
+- `upcoming` — Not started yet
+- `end` — Airdrop has ended
+- `missed` — Missed the window
+
+### Task Status
+- `pending` — Not started
+- `ongoing` — In progress
+- `finish` — Completed
+- `missed` — Missed deadline
+
+### Task Frequency
+- `once` — One-time task
+- `daily` — Repeat every day
+- `weekly` — Repeat every week
+- `monthly` — Repeat every month
+
+---
+
+## Common Troubleshooting
+
+### "gcc: command not found" when running the server
+
+The SQLite driver needs a C compiler. Install it:
+
+```bash
+# Ubuntu/Debian
 sudo apt install gcc
 
-# Mac — install Xcode Command Line Tools
+# macOS
 xcode-select --install
-
-# Windows — install TDM-GCC atau MinGW
 ```
 
-### ❌ Lupa password / mau reset database
+### "port already in use" error
 
-Hapus file database dan mulai fresh:
+Another process is using port 8080. Either:
+
+- Kill it: `lsof -i :8080` then `kill <PID>`
+- Change the port in `.env`: `APP_PORT=3000`
+
+### "Authorization header required" error
+
+You forgot to include the JWT token. Add this header:
+
+```
+-H "Authorization: Bearer YOUR_TOKEN_HERE"
+```
+
+### "Invalid token" error
+
+Your token has expired (tokens last 72 hours) or is malformed. Log in again to get a new token.
+
+### "Email already exists" when registering
+
+That email is already taken. Use a different email or log in with the existing one.
+
+### Database is corrupted or behaving strangely
+
+Delete the database file and restart — the server will recreate it:
 
 ```bash
 rm data/airdrop.db
-make run
+go run ./cmd/server/main.go
 ```
 
-> ⚠️ **Semua data hilang!** Pastikan backup dulu kalau perlu.
+**Warning:** This deletes all your data. Back up `data/airdrop.db` first if needed.
 
-### ❌ Token expired / Unauthorized
+### "Account has wallets or airdrops" when deleting
 
-Token JWT expired. Login ulang:
-
-1. POST `/api/auth/login` dengan email & password
-2. Copy token baru
-3. Klik **Authorize** di Swagger → paste token baru
-
----
-
-## 12. Cheat Sheet
-
-### Sehari-hari
+The account has linked data. Use `?force=true` to delete everything:
 
 ```bash
-# Jalankan server
-make run
-
-# Build binary (hasil: bin/server)
-make build
-
-# Regenerate Swagger setelah edit comment handler
-make swag
-
-# Run tests
-make test
-
-# Hapus database + binary (fresh start)
-make clean
-```
-
-### Curl (test dari terminal)
-
-```bash
-# Register
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@email.com","password":"password123","name":"Bita"}'
-
-# Login (copy token dari response)
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"test@email.com","password":"password123"}'
-
-# List airdrops (ganti TOKEN)
-curl http://localhost:8080/api/airdrops \
-  -H "Authorization: Bearer TOKEN"
-
-# Create airdrop
-curl -X POST http://localhost:8080/api/airdrops \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer TOKEN" \
-  -d '{"name":"zkSync","chain":"Ethereum","priority":"high","status":"active"}'
-
-# Dashboard stats
-curl http://localhost:8080/api/dashboard \
-  -H "Authorization: Bearer TOKEN"
-
-# Export Excel
-curl http://localhost:8080/api/export/excel \
-  -H "Authorization: Bearer TOKEN" \
-  -o export.xlsx
+curl -X DELETE "http://localhost:8080/api/accounts/1?force=true" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
 ---
 
-## 🎯 Ringkasan Cepat (Copy-Paste)
+## Quick Reference: All API Endpoints
 
-```bash
-# Clone + Setup + Run
-git clone https://github.com/bsyrlhabibi/airdrop-tracker-api.git
-cd airdrop-tracker-api
-cp .env.example .env
-go mod tidy
-make run
-```
-
-Buka browser: **http://localhost:8080/swagger/index.html** 🚀
+| Method | URL | Auth | Description |
+|--------|-----|------|-------------|
+| POST | `/api/auth/register` | No | Register new user |
+| POST | `/api/auth/login` | No | Login, get JWT token |
+| GET | `/api/airdrops` | Yes | List all airdrops |
+| POST | `/api/airdrops` | Yes | Create airdrop |
+| GET | `/api/airdrops/:id` | Yes | Get airdrop details |
+| PUT | `/api/airdrops/:id` | Yes | Update airdrop |
+| DELETE | `/api/airdrops/:id` | Yes | Delete airdrop |
+| GET | `/api/airdrops/:id/tasks` | Yes | List airdrop task templates |
+| POST | `/api/airdrops/:id/tasks` | Yes | Create airdrop task template |
+| PUT | `/api/airdrop-tasks/:id` | Yes | Update airdrop task template |
+| DELETE | `/api/airdrop-tasks/:id` | Yes | Delete airdrop task template |
+| GET | `/api/accounts` | Yes | List all accounts |
+| POST | `/api/accounts` | Yes | Create account |
+| GET | `/api/accounts/:id` | Yes | Get account details |
+| PUT | `/api/accounts/:id` | Yes | Update account |
+| DELETE | `/api/accounts/:id` | Yes | Delete account (?force=true) |
+| POST | `/api/accounts/:id/airdrops` | Yes | Assign airdrop to account |
+| DELETE | `/api/accounts/:id/airdrops/:aid` | Yes | Remove airdrop from account |
+| POST | `/api/account-airdrops/:id/tasks` | Yes | Create per-account task |
+| PUT | `/api/tasks/:id` | Yes | Update task |
+| DELETE | `/api/tasks/:id` | Yes | Delete task |
+| GET | `/api/accounts/:id/tasks/today` | Yes | Get today's tasks |
+| GET | `/api/accounts/:id/tasks/by-date` | Yes | Get tasks for a date |
+| GET | `/api/categories` | Yes | List categories |
+| POST | `/api/categories` | Yes | Create category |
+| PUT | `/api/categories/:id` | Yes | Update category |
+| DELETE | `/api/categories/:id` | Yes | Delete category |
+| GET | `/api/wallets` | Yes | List wallets (?account_id=N) |
+| POST | `/api/wallets` | Yes | Create wallet |
+| DELETE | `/api/wallets/:id` | Yes | Delete wallet |
+| GET | `/api/dashboard` | Yes | Dashboard statistics |
+| GET | `/api/export/excel` | Yes | Export Excel file |
+| GET | `/swagger/index.html` | No | Swagger UI docs |
 
 ---
 
-Selamat mencoba! 🎉
+## Building for Production
 
-Ada masalah? Cek [Troubleshooting](#11-troubleshooting) dulu sebelum bertanya.
+To build a standalone binary:
+
+```bash
+go build -o airdrop-server ./cmd/server
+```
+
+Then deploy and run:
+
+```bash
+JWT_SECRET=your-production-secret DB_PATH=/var/data/airdrop.db APP_PORT=8080 ./airdrop-server
+```
+
+You can also set these as system environment variables instead of prefixing the command.
